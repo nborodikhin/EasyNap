@@ -1,10 +1,4 @@
-# Timer Setup
-
-## Purpose
-
-Defines the idle setup screen where the user enters a duration or picks a quick-start preset to begin a nap timer.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Duration entry field
 The main screen SHALL display the existing labeled "Timer duration (minutes)" text field below the quick duration table. The field SHALL continue to accept a positive floating-point number of minutes using a decimal numeric keyboard.
@@ -16,17 +10,6 @@ The main screen SHALL display the existing labeled "Timer duration (minutes)" te
 #### Scenario: Field accepts a decimal value
 - **WHEN** the user types a fractional value such as `12.5`
 - **THEN** the field accepts the input and treats it as 12.5 minutes
-
-### Requirement: Start a timer from the entered duration
-The main screen SHALL provide a "Start Timer" button that starts a countdown for the duration entered in the field.
-
-#### Scenario: Start with a valid duration
-- **WHEN** the field contains a positive number and the user taps "Start Timer"
-- **THEN** a countdown of that many minutes starts and the app shows the running‑timer screen
-
-#### Scenario: Reject an invalid duration
-- **WHEN** the field is empty, zero, negative, or not a valid number and the user taps "Start Timer"
-- **THEN** no countdown starts and the user is shown that the duration is invalid
 
 ### Requirement: Quick‑start buttons
 The main screen SHALL display a compact quick duration table containing up to 6 distinct recent nap durations, with no "RECENT" or "PRESETS" section titles. Before the user has enough history, the table SHALL be pre-seeded with 5, 10, and 30 minute durations.
@@ -46,10 +29,3 @@ The main screen SHALL display a compact quick duration table containing up to 6 
 #### Scenario: Duplicate duration moves to front
 - **WHEN** the user starts a nap duration that is already present in the quick duration table
 - **THEN** that duration is moved to the newest position rather than duplicated
-
-### Requirement: Setup screen is shown only when idle
-The main/setup screen SHALL be presented only when no timer is currently active.
-
-#### Scenario: Setup hidden while a timer runs
-- **WHEN** a timer is active and the user is in the app
-- **THEN** the setup screen is not shown; the running‑timer screen is shown instead

@@ -11,3 +11,9 @@ fun formatRemainingTime(remainingMs: Long): String {
     val seconds = totalSeconds % 60
     return "%02d:%02d".format(minutes, seconds)
 }
+
+fun formatDurationLabel(minutes: Float): String =
+    if (minutes % 1f == 0f) "${minutes.toInt()}" else "$minutes"
+
+fun formatDurationCaption(minutes: Float): String =
+    "${formatDurationLabel(minutes)}-minute nap"

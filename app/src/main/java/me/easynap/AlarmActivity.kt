@@ -9,12 +9,17 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,7 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import me.easynap.theme.CalmTealAlarmBackground
 import me.easynap.theme.EasyNapTheme
+import me.easynap.formatDurationLabel
 
 class AlarmActivity : ComponentActivity() {
 
@@ -48,32 +55,66 @@ class AlarmActivity : ComponentActivity() {
         registerReceiver(finishReceiver, IntentFilter(ACTION_FINISH), RECEIVER_NOT_EXPORTED)
 
         enableEdgeToEdge()
+
+        val durationMinutes = TimerController.getNapDurationMinutes()
+        val durationLabel = formatDurationLabel(durationMinutes)
+
         setContent {
             EasyNapTheme {
-                Scaffold { padding ->
+                val primary = MaterialTheme.colorScheme.primary
+                val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
+
+                Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(padding),
+                            .padding(padding)
+                            .padding(horizontal = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
+                        Box(
+                            modifier = Modifier.size(104.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val radius = size.minDimension / 2f
+                                val ringWidth = 9.dp.toPx()
+                                drawCircle(color = primary, radius = radius)
+                                drawCircle(color = CalmTealAlarmBackground, radius = radius - ringWidth)
+                            }
+                            Text(
+                                text = "✓",
+                                fontSize = 42.sp,
+                                fontWeight = FontWeight.Light,
+                                color = onPrimaryContainer,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Spacer(Modifier.height(32.dp))
                         Text(
-                            text = "Wake up!",
-                            fontSize = 52.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            text = "Time to wake up",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "Time's up",
-                            fontSize = 22.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(bottom = 48.dp)
+                            text = "Your $durationLabel-minute nap is done. Hope you feel refreshed.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         )
-                        Button(onClick = { stopAlarmService() }) {
-                            Text("Cancel", fontSize = 18.sp)
+                        Spacer(Modifier.height(40.dp))
+                        Button(
+                            onClick = { stopAlarmService() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(68.dp),
+                            shape = CircleShape
+                        ) {
+                            Text("Stop", style = MaterialTheme.typography.titleMedium)
                         }
                     }
                 }
