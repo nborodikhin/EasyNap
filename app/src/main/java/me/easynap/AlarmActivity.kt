@@ -7,12 +7,14 @@ import android.content.IntentFilter
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +22,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -61,6 +65,8 @@ class AlarmActivity : ComponentActivity() {
 
         setContent {
             EasyNapTheme {
+                BackHandler { stopAlarmService() }
+
                 val primary = MaterialTheme.colorScheme.primary
                 val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
 
@@ -116,6 +122,30 @@ class AlarmActivity : ComponentActivity() {
                         ) {
                             Text("Stop", style = MaterialTheme.typography.titleMedium)
                         }
+                        Spacer(Modifier.height(20.dp))
+                        Text(
+                            text = "SNOOZE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.32.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            SNOOZE_OPTIONS.forEach { (label, minutes) ->
+                                FilledTonalButton(
+                                    onClick = { snooze(minutes) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(18.dp),
+                                ) {
+                                    Text(label, style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -131,6 +161,17 @@ class AlarmActivity : ComponentActivity() {
         startService(Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_STOP
         })
+        startActivity(Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        })
+        finish()
+    }
+
+    private fun snooze(minutes: Float) {
+        startService(Intent(this, AlarmService::class.java).apply {
+            action = AlarmService.ACTION_STOP
+        })
+        TimerController.startSnooze(minutes)
         startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         })
