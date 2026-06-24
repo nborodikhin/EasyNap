@@ -33,6 +33,15 @@ object TimerController {
     }
 
     fun start(durationMinutes: Float) {
+        addToHistory(durationMinutes)
+        startInternal(durationMinutes)
+    }
+
+    fun startSnooze(durationMinutes: Float) {
+        startInternal(durationMinutes)
+    }
+
+    private fun startInternal(durationMinutes: Float) {
         val durationMs = (durationMinutes * 60_000).toLong()
         val pad = if (durationMinutes >= 1f) PAD_MS else 0L
         val endAt = System.currentTimeMillis() + durationMs + pad
@@ -40,7 +49,6 @@ object TimerController {
             .putLong(KEY_END_AT, endAt)
             .putFloat(KEY_DURATION, durationMinutes)
             .apply()
-        addToHistory(durationMinutes)
         _state.value = TimerState.Running(endAt, durationMinutes)
         startCountdownService()
         scheduleAlarm(endAt)
@@ -64,6 +72,10 @@ object TimerController {
         val stored = loadStoredHistory() ?: emptyList()
         val seeds = listOf(5f, 10f, 30f)
         return (stored + seeds.filter { it !in stored }).take(6)
+    }
+
+    fun loadRecentHistory(): List<Float> {
+        return (loadStoredHistory() ?: emptyList()).take(3)
     }
 
     fun stopCountdownService() {

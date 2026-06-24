@@ -1,10 +1,15 @@
-# Timer Setup
+## MODIFIED Requirements
 
-## Purpose
+### Requirement: Duration selection grid
+The main screen SHALL display a single unified grid of duration tiles. Recently used durations and default seed durations SHALL appear together in the same grid without separate section labels. A Custom tile SHALL appear as the last tile in the grid. Tapping any duration tile starts a nap immediately.
 
-Defines the idle setup screen where the user enters a duration or picks a quick-start preset to begin a nap timer.
+#### Scenario: Unified grid shows all durations
+- **WHEN** the app is opened and no timer is active
+- **THEN** a single grid of duration tiles is displayed, combining recently used durations and default durations, with no "RECENT" or "PRESETS" section labels
 
-## Requirements
+#### Scenario: Custom tile is always present
+- **WHEN** the app is opened and no timer is active
+- **THEN** a Custom tile appears as the last tile in the grid
 
 ### Requirement: Duration entry field
 The main screen SHALL NOT display an inline duration text field. Instead, it SHALL provide a Custom duration entry point that opens a modal bottom sheet over the home screen for precise duration entry.
@@ -32,32 +37,7 @@ The custom duration bottom sheet SHALL provide a "Start nap" button that starts 
 - **WHEN** the custom input is empty, invalid, shorter than 5 seconds, or longer than 120 minutes
 - **THEN** the "Start nap" button is disabled and no countdown starts
 
-### Requirement: Duration selection grid
-The main screen SHALL display a single unified grid of duration tiles. Recently used durations and default seed durations SHALL appear together in the same grid without separate section labels. A Custom tile SHALL appear as the last tile in the grid. Tapping any duration tile starts a nap immediately.
-
-#### Scenario: Unified grid shows all durations
-- **WHEN** the app is opened and no timer is active
-- **THEN** a single grid of duration tiles is displayed, combining recently used durations and default durations, with no "RECENT" or "PRESETS" section labels
-
-#### Scenario: Custom tile is always present
-- **WHEN** the app is opened and no timer is active
-- **THEN** a Custom tile appears as the last tile in the grid
-
-#### Scenario: Seeded quick durations are shown
-- **WHEN** the main screen is shown and the user has fewer than 6 saved nap durations in history
-- **THEN** the grid includes 5, 10, and 30 minute durations as seeds to fill remaining slots (seeds that are already in history are not duplicated)
-
-#### Scenario: Tapping a quick duration starts a timer
-- **WHEN** the user taps a duration tile in the grid
-- **THEN** a countdown of that duration starts immediately and the app shows the running‑timer screen
-
-#### Scenario: Grid is capped
-- **WHEN** more than 6 last nap durations are available
-- **THEN** the main screen displays no more than 6 distinct durations in the grid (plus the Custom tile)
-
-#### Scenario: Duplicate duration moves to front
-- **WHEN** the user starts a nap duration that is already present in the grid
-- **THEN** that duration is moved to the newest position rather than duplicated
+## ADDED Requirements
 
 ### Requirement: Keypad-only custom duration input
 The custom duration sheet SHALL provide a keypad containing digits, a colon key, and a backspace key. The system SHALL accept whole minutes when no colon is present and `mm:ss` when a colon is present. Decimal input SHALL NOT be offered and SHALL be rejected or ignored.
@@ -88,10 +68,3 @@ The custom duration sheet SHALL show a human-readable duration description (e.g.
 #### Scenario: Empty or incomplete input shows no helper text
 - **WHEN** the custom input is empty or does not yet parse to a complete value
 - **THEN** no helper text is displayed below the input
-
-### Requirement: Setup screen is shown only when idle
-The main/setup screen SHALL be presented only when no timer is currently active.
-
-#### Scenario: Setup hidden while a timer runs
-- **WHEN** a timer is active and the user is in the app
-- **THEN** the setup screen is not shown; the running‑timer screen is shown instead
