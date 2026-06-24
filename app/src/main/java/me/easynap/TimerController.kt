@@ -4,94 +4,87 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 object TimerController {
 
-    private const val PREFS_NAME = "easynap_prefs"
-    private const val KEY_END_AT = "end_at_millis"
-    private const val KEY_DURATION = "nap_duration_minutes"
-    private const val KEY_HISTORY = "duration_history"
     private const val PAD_MS = 5_000L
 
-    private lateinit var prefs: SharedPreferences
     private lateinit var appContext: Context
+    private lateinit var store: TimerPreferenceStore
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
     val state: StateFlow<TimerState> = _state.asStateFlow()
 
+    private val _history = MutableStateFlow(TimerPreferenceStore.DEFAULT_HISTORY)
+    val history: StateFlow<List<Float>> = _history.asStateFlow()
+
+    private val _napDurationMinutes = MutableStateFlow(0f)
+    val napDurationMinutes: StateFlow<Float> = _napDurationMinutes.asStateFlow()
+
     fun init(context: Context) {
         if (::appContext.isInitialized) return
         appContext = context.applicationContext
-        prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val endAt = prefs.getLong(KEY_END_AT, 0L)
-        val duration = prefs.getFloat(KEY_DURATION, 0f)
-        _state.value = if (endAt > System.currentTimeMillis()) TimerState.Running(endAt, duration) else TimerState.Idle
+        store = TimerPreferenceStore(appContext.timerDataStore)
+        scope.launch {
+            store.history.collect { _history.value = it }
+        }
+        scope.launch {
+            store.napDurationMinutes.collect { _napDurationMinutes.value = it }
+        }
+        scope.launch {
+            val activeTimer = store.loadActiveTimer()
+            _state.value = if (activeTimer != null) {
+                TimerState.Running(activeTimer.endAtMillis, activeTimer.durationMinutes)
+            } else {
+                store.clearActiveTimer()
+                TimerState.Idle
+            }
+        }
     }
 
     fun start(durationMinutes: Float) {
-        addToHistory(durationMinutes)
-        startInternal(durationMinutes)
+        startInternal(durationMinutes, updateHistory = true)
     }
 
     fun startSnooze(durationMinutes: Float) {
-        startInternal(durationMinutes)
+        startInternal(durationMinutes, updateHistory = false)
     }
 
-    private fun startInternal(durationMinutes: Float) {
+    private fun startInternal(durationMinutes: Float, updateHistory: Boolean) {
         val durationMs = (durationMinutes * 60_000).toLong()
         val pad = if (durationMinutes >= 1f) PAD_MS else 0L
         val endAt = System.currentTimeMillis() + durationMs + pad
-        prefs.edit()
-            .putLong(KEY_END_AT, endAt)
-            .putFloat(KEY_DURATION, durationMinutes)
-            .apply()
-        _state.value = TimerState.Running(endAt, durationMinutes)
-        startCountdownService()
-        scheduleAlarm(endAt)
+        scope.launch {
+            store.startTimer(endAt, durationMinutes, updateHistory)
+            _state.value = TimerState.Running(endAt, durationMinutes)
+            _napDurationMinutes.value = durationMinutes
+            startCountdownService()
+            scheduleAlarm(endAt)
+        }
     }
 
     fun cancel() {
-        prefs.edit().remove(KEY_END_AT).apply()
         _state.value = TimerState.Idle
+        scope.launch { store.clearActiveTimer() }
         stopCountdownService()
         cancelAlarm()
     }
 
     fun completeTimer() {
-        prefs.edit().remove(KEY_END_AT).apply()
         _state.value = TimerState.Idle
-    }
-
-    fun getNapDurationMinutes(): Float = prefs.getFloat(KEY_DURATION, 0f)
-
-    fun loadHistory(): List<Float> {
-        val stored = loadStoredHistory() ?: emptyList()
-        val seeds = listOf(5f, 10f, 30f)
-        return (stored + seeds.filter { it !in stored }).take(6)
-    }
-
-    fun loadRecentHistory(): List<Float> {
-        return (loadStoredHistory() ?: emptyList()).take(3)
+        scope.launch { store.clearActiveTimer() }
     }
 
     fun stopCountdownService() {
         appContext.stopService(Intent(appContext, NapTimerService::class.java))
-    }
-
-    private fun loadStoredHistory(): List<Float>? {
-        val raw = prefs.getString(KEY_HISTORY, null) ?: return null
-        return raw.split(",").mapNotNull { it.trim().toFloatOrNull() }
-    }
-
-    private fun addToHistory(minutes: Float) {
-        val current = (loadStoredHistory() ?: emptyList()).toMutableList()
-        current.remove(minutes)
-        current.add(0, minutes)
-        prefs.edit().putString(KEY_HISTORY, current.take(6).joinToString(",")).apply()
     }
 
     private fun startCountdownService() {

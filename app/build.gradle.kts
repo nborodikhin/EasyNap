@@ -49,7 +49,9 @@ dependencies {
 
   // Core Android
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.ktx)
+  implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.activity.compose)
 
   // Compose
@@ -64,6 +66,7 @@ dependencies {
 
   // Local tests
   testImplementation(libs.junit)
+  testImplementation(libs.androidx.datastore.preferences.core)
   testImplementation(libs.kotlinx.coroutines.test)
 
   // Instrumented tests

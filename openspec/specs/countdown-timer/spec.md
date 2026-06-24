@@ -47,6 +47,17 @@ While a timer is active and the app is in the foreground, the system SHALL show 
 - **WHEN** the running‑timer screen is visible
 - **THEN** the displayed remaining time decreases in real time toward zero and the circular progress ring animates smoothly and continuously to reflect countdown progress (no per-second jumps)
 
+### Requirement: Async persisted countdown state
+The countdown controller and foreground service SHALL load active timer state through DataStore-backed asynchronous access while preserving existing countdown behavior.
+
+#### Scenario: App restores active timer from DataStore
+- **WHEN** the app starts and a persisted future timer end time exists
+- **THEN** the app restores the running timer state from DataStore-backed persisted state
+
+#### Scenario: Foreground service avoids SharedPreferences disk reads
+- **WHEN** the countdown foreground service starts
+- **THEN** it loads the persisted timer end time without directly reading SharedPreferences synchronously
+
 ### Requirement: Cancel a running timer
 The system SHALL allow the user to cancel an active timer, which stops the countdown and clears all associated system state.
 

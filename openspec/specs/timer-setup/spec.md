@@ -33,7 +33,7 @@ The custom duration bottom sheet SHALL provide a "Start nap" button that starts 
 - **THEN** the "Start nap" button is disabled and no countdown starts
 
 ### Requirement: Duration selection grid
-The main screen SHALL display a single unified grid of duration tiles. Recently used durations and default seed durations SHALL appear together in the same grid without separate section labels. A Custom tile SHALL appear as the last tile in the grid. Tapping any duration tile starts a nap immediately.
+The main screen SHALL display a single unified grid of duration tiles. Recently used durations and default seed durations SHALL appear together in the same grid without separate section labels. A Custom tile SHALL appear as the last tile in the grid. Tapping any duration tile starts a nap immediately. Duration history SHALL be loaded and updated through DataStore-backed asynchronous state rather than synchronous SharedPreferences reads.
 
 #### Scenario: Unified grid shows all durations
 - **WHEN** the app is opened and no timer is active
@@ -58,6 +58,10 @@ The main screen SHALL display a single unified grid of duration tiles. Recently 
 #### Scenario: Duplicate duration moves to front
 - **WHEN** the user starts a nap duration that is already present in the grid
 - **THEN** that duration is moved to the newest position rather than duplicated
+
+#### Scenario: History does not block on disk
+- **WHEN** the setup screen loads duration history
+- **THEN** it collects DataStore-backed asynchronous state instead of calling a synchronous disk-backed preference read
 
 ### Requirement: Keypad-only custom duration input
 The custom duration sheet SHALL provide a keypad containing digits, a colon key, and a backspace key. The system SHALL accept whole minutes when no colon is present and `mm:ss` when a colon is present. Decimal input SHALL NOT be offered and SHALL be rejected or ignored.

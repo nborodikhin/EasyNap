@@ -11,6 +11,11 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class NapTimerService : Service() {
 
@@ -21,6 +26,7 @@ class NapTimerService : Service() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var endAtMillis = 0L
 
     private val tick = object : Runnable {
@@ -41,21 +47,25 @@ class NapTimerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val prefs = getSharedPreferences("easynap_prefs", Context.MODE_PRIVATE)
-        endAtMillis = prefs.getLong("end_at_millis", 0L)
-        if (endAtMillis == 0L || endAtMillis <= System.currentTimeMillis()) {
-            stopSelf()
-            return START_NOT_STICKY
+        serviceScope.launch {
+            val activeTimer = TimerPreferenceStore(applicationContext.timerDataStore)
+                .loadActiveTimer()
+            if (activeTimer == null) {
+                stopSelf(startId)
+                return@launch
+            }
+            endAtMillis = activeTimer.endAtMillis
+            val remaining = endAtMillis - System.currentTimeMillis()
+            startForeground(NOTIF_ID_TIMER, buildNotification(remaining))
+            handler.removeCallbacks(tick)
+            handler.post(tick)
         }
-        val remaining = endAtMillis - System.currentTimeMillis()
-        startForeground(NOTIF_ID_TIMER, buildNotification(remaining))
-        handler.removeCallbacks(tick)
-        handler.post(tick)
         return START_STICKY
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(tick)
+        serviceScope.cancel()
         super.onDestroy()
     }
 

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.easynap.TimerController
 import me.easynap.appendToBuffer
 import me.easynap.formatDurationLabel
@@ -56,7 +57,7 @@ import me.easynap.parseCustomDurationSeconds
 @Composable
 fun SetupScreen() {
     var showCustomSheet by remember { mutableStateOf(false) }
-    val history = remember { TimerController.loadHistory() }
+    val history by TimerController.history.collectAsStateWithLifecycle()
 
     Scaffold { padding ->
         Column(

@@ -8,8 +8,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.easynap.theme.EasyNapTheme
 import me.easynap.ui.RunningScreen
 import me.easynap.ui.SetupScreen
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             EasyNapTheme {
-                val timerState by TimerController.state.collectAsState()
+                val timerState by TimerController.state.collectAsStateWithLifecycle()
                 when (timerState) {
                     is TimerState.Idle -> SetupScreen()
                     is TimerState.Running -> RunningScreen(timerState as TimerState.Running)
