@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1024"
+   height="500"
+   viewBox="0 0 1024 500"
+   version="1.1"
+   id="svg-feature-graphic"
+   sodipodi:docname="feature-graphic.svg"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview-feature-graphic"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:zoom="0.815"
+     inkscape:cx="346.01227"
+     inkscape:cy="249.69325"
+     inkscape:window-width="1920"
+     inkscape:window-height="1024"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer-title" />
+  <defs
+     id="defs-feature-graphic">
+    <linearGradient
+       id="background-gradient"
+       x1="0"
+       y1="0"
+       x2="1024"
+       y2="500"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         stop-color="#071310"
+         id="stop1" />
+      <stop
+         offset="0.55"
+         stop-color="#0a1b17"
+         id="stop2" />
+      <stop
+         offset="1"
+         stop-color="#003f37"
+         id="stop3" />
+    </linearGradient>
+  </defs>
+  <g
+     id="layer-background"
+     inkscape:groupmode="layer"
+     inkscape:label="Background">
+    <rect
+       id="background"
+       width="1024"
+       height="500"
+       fill="url(#background-gradient)" />
+    <circle
+       id="accent-glow-left"
+       cx="78"
+       cy="76"
+       r="150"
+       fill="#7ff7e9"
+       opacity="0.08" />
+    <circle
+       id="accent-glow-right"
+       cx="881"
+       cy="427"
+       r="230"
+       fill="#7ff7e9"
+       opacity="0.12" />
+  </g>
+  <g
+     id="layer-title"
+     inkscape:groupmode="layer"
+     inkscape:label="Title">
+    <g
+       id="g6"
+       transform="translate(-26)">
+      <text
+         id="title"
+         x="64"
+         y="177"
+         fill="#f4fffc"
+         font-family="Inter, Roboto, Arial, sans-serif"
+         font-size="58px"
+         font-weight="800"
+         letter-spacing="-0.5"><tspan
+           x="64"
+           y="174"
+           id="tspan3">Just nap,</tspan><tspan
+           x="64"
+           y="242"
+           id="tspan4">nothing more</tspan></text>
+      <rect
+         id="title-underline"
+         x="66"
+         y="276"
+         width="238"
+         height="8"
+         rx="4"
+         fill="#7ff7e9"
+         opacity="0.95" />
+    </g>
+  </g>
+  <g
+     id="layer-phones"
+     inkscape:groupmode="layer"
+     inkscape:label="Phone screenshots">
+    <g
+       id="phone-main-group"
+       inkscape:label="Phone - main screenshot"
+       transform="matrix(0.145,0,0,0.145,438,68)"
+       style="display:inline">
+      <defs
+         id="defs4">
+        <clipPath
+           id="phone-main-display-clip">
+          <rect
+             x="69"
+             y="73"
+             width="1080"
+             height="2424"
+             rx="87"
+             ry="87"
+             id="rect4" />
+        </clipPath>
+      </defs>
+      <rect
+         id="phone-main-shadow"
+         x="40"
+         y="76"
+         width="1144"
+         height="2448"
+         rx="150"
+         ry="150"
+         fill="#000000"
+         opacity="0.28" />
+      <image
+         id="phone-main-back-skin"
+         href="pixel_9a/back.webp"
+         xlink:href="pixel_9a/back.webp"
+         x="0"
+         y="0"
+         width="1224"
+         height="2570"
+         preserveAspectRatio="none" />
+      <image
+         id="phone-main-screenshot"
+         href="phone-main.png"
+         xlink:href="phone-main.png"
+         x="69"
+         y="73"
+         width="1080"
+         height="2424"
+         preserveAspectRatio="none"
+         clip-path="url(#phone-main-display-clip)" />
+      <image
+         id="phone-main-front-skin"
+         href="pixel_9a/mask.webp"
+         xlink:href="pixel_9a/mask.webp"
+         x="0"
+         y="0"
+         width="1224"
+         height="2570"
+         preserveAspectRatio="none"
+         style="display:none" />
+    </g>
+    <g
+       id="phone-countdown-group"
+       inkscape:label="Phone - countdown screenshot"
+       transform="translate(588,47) scale(0.158)">
+      <defs
+         id="defs5">
+        <clipPath
+           id="phone-countdown-display-clip">
+          <rect
+             x="69"
+             y="73"
+             width="1080"
+             height="2424"
+             rx="87"
+             ry="87"
+             id="rect5" />
+        </clipPath>
+      </defs>
+      <rect
+         id="phone-countdown-shadow"
+         x="40"
+         y="76"
+         width="1144"
+         height="2448"
+         rx="150"
+         ry="150"
+         fill="#000000"
+         opacity="0.3" />
+      <image
+         id="phone-countdown-back-skin"
+         href="pixel_9a/back.webp"
+         xlink:href="pixel_9a/back.webp"
+         x="0"
+         y="0"
+         width="1224"
+         height="2570"
+         preserveAspectRatio="none" />
+      <image
+         id="phone-countdown-screenshot"
+         href="phone-countdown.png"
+         xlink:href="phone-countdown.png"
+         x="69"
+         y="73"
+         width="1080"
+         height="2424"
+         preserveAspectRatio="none"
+         clip-path="url(#phone-countdown-display-clip)" />
+      <image
+         id="phone-countdown-front-skin"
+         href="pixel_9a/mask.webp"
+         xlink:href="pixel_9a/mask.webp"
+         x="0"
+         y="0"
+         width="1224"
+         height="2570"
+         preserveAspectRatio="none"
+         style="display:none" />
+    </g>
+    <g
+       id="phone-alert-group"
+       inkscape:label="Phone - alert screenshot"
+       transform="translate(768,68) scale(0.145)">
+      <defs
+         id="defs6">
+        <clipPath
+           id="phone-alert-display-clip">
+          <rect
+             x="69"
+             y="73"
+             width="1080"
+             height="2424"
+             rx="87"
+             ry="87"
+             id="rect6" />
+        </clipPath>
+      </defs>
+      <rect
+         id="phone-alert-shadow"
+         x="40"
+         y="76"
+         width="1144"
+         height="2448"
+         rx="150"
+         ry="150"
+         fill="#000000"
+         opacity="0.28" />
+      <image
+         id="phone-alert-back-skin"
+         href="pixel_9a/back.webp"
+         xlink:href="pixel_9a/back.webp"
+         x="0"
+         y="0"
+         width="1224"
+         height="2570"
+         preserveAspectRatio="none" />
+      <image
+         id="phone-alert-screenshot"
+         href="phone-alert.png"
+         xlink:href="phone-alert.png"
+         x="69"
+         y="73"
+         width="1080"
+         height="2424"
+         preserveAspectRatio="none"
+         clip-path="url(#phone-alert-display-clip)" />
+      <image
+         id="phone-alert-front-skin"
+         href="pixel_9a/mask.webp"
+         xlink:href="pixel_9a/mask.webp"
+         x="0"
+         y="0"
+         width="1224"
+         height="2570"
+         preserveAspectRatio="none"
+         style="display:none" />
+    </g>
+  </g>
+</svg>
