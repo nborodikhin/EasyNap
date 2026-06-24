@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.ui.res.stringResource
+import me.easynap.R
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,31 +69,31 @@ fun SetupScreen() {
                 .padding(padding)
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(18.dp))
             Text(
-                "Easy Nap",
+                stringResource(R.string.home_title),
                 style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(28.dp))
+            Text(
+                stringResource(R.string.home_headline),
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Ready to rest?",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Tap a length to start your nap.",
+                stringResource(R.string.home_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(42.dp))
             DurationGrid(
                 durations = history,
                 onDurationSelected = { TimerController.start(it) },
                 onCustom = { showCustomSheet = true }
             )
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(28.dp))
         }
     }
 
@@ -241,7 +243,7 @@ private fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Custom length",
+                text = stringResource(R.string.custom_duration_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -253,7 +255,7 @@ private fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
             val helperColor = if (isOutOfRange) MaterialTheme.colorScheme.error
                               else MaterialTheme.colorScheme.onSurface
             val helperText = when {
-                isOutOfRange -> "Enter 0:05 – 120 min"
+                isOutOfRange -> stringResource(R.string.custom_duration_error)
                 isStartEnabled && parsedSeconds != null -> formatNapDescription(parsedSeconds)
                 else -> ""
             }
@@ -266,7 +268,7 @@ private fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
 
             NumericKeypad(
                 onKey = { key -> inputBuffer = appendToBuffer(inputBuffer, key) },
-                colonEnabled = ':' !in inputBuffer
+                colonEnabled = inputBuffer.isNotEmpty() && ':' !in inputBuffer
             )
             Spacer(Modifier.height(20.dp))
 
@@ -278,7 +280,7 @@ private fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
                     .height(56.dp),
                 shape = CircleShape
             ) {
-                Text("Start nap", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.custom_duration_start), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

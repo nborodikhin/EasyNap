@@ -2,5 +2,5 @@ package me.easynap
 
 sealed class TimerState {
     object Idle : TimerState()
-    data class Running(val endAtMillis: Long, val durationMinutes: Float) : TimerState()
+    data class Running(val endAtMillis: Long, val durationMinutes: Float, val isSnooze: Boolean = false) : TimerState()
 }

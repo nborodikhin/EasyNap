@@ -63,6 +63,16 @@ fun formatRemainingTime(remainingMs: Long): String {
     return "%02d:%02d".format(minutes, seconds)
 }
 
+fun formatRemainingTimeRoundUp(remainingMs: Long): String {
+    val totalSeconds = (remainingMs.coerceAtLeast(0) + 999) / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
+}
+
+fun anticipatedProgressMs(remainingMs: Long, syncIntervalMs: Long): Long =
+    (remainingMs - minOf(syncIntervalMs, remainingMs)).coerceAtLeast(0)
+
 fun formatDurationLabel(minutes: Float): String =
     if (minutes % 1f == 0f) {
         "${minutes.toInt()}"

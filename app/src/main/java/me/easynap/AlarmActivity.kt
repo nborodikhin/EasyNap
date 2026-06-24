@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -140,7 +141,8 @@ class AlarmActivity : ComponentActivity() {
                             SNOOZE_OPTIONS.forEach { (label, minutes) ->
                                 FilledTonalButton(
                                     onClick = { snooze(minutes) },
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1f)
+                                        .height(68.dp),
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
                                     Text(label, style = MaterialTheme.typography.labelLarge)
@@ -151,6 +153,14 @@ class AlarmActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            snooze(1f)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onDestroy() {

@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 
 object TimerController {
 
-    private const val PAD_MS = 5_000L
+    private const val PAD_MS_SHORT = 990L
+    private const val PAD_MS_LONG = 1_990L
 
     private lateinit var appContext: Context
     private lateinit var store: TimerPreferenceStore
@@ -60,12 +61,12 @@ object TimerController {
 
     private fun startInternal(durationMinutes: Float, updateHistory: Boolean) {
         val durationMs = (durationMinutes * 60_000).toLong()
-        val pad = if (durationMinutes >= 1f) PAD_MS else 0L
+        val pad = if (durationMinutes >= 1f) PAD_MS_LONG else PAD_MS_SHORT
         val endAt = System.currentTimeMillis() + durationMs + pad
         scope.launch {
             store.startTimer(endAt, durationMinutes, updateHistory)
-            _state.value = TimerState.Running(endAt, durationMinutes)
-            _napDurationMinutes.value = durationMinutes
+            _state.value = TimerState.Running(endAt, durationMinutes, isSnooze = !updateHistory)
+            if (updateHistory) _napDurationMinutes.value = durationMinutes
             startCountdownService()
             scheduleAlarm(endAt)
         }

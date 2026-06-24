@@ -58,8 +58,8 @@ class TimerPreferenceStore(
     suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateHistory: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_END_AT] = endAtMillis
-            preferences[KEY_DURATION] = durationMinutes
             if (updateHistory) {
+                preferences[KEY_DURATION] = durationMinutes
                 preferences[KEY_HISTORY] = updatedHistory(preferences.parseStoredHistory(), durationMinutes)
                     .joinToString(",")
             }

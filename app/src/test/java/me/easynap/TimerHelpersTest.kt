@@ -68,6 +68,63 @@ class TimerHelpersTest {
         assertEquals("60:00", formatRemainingTime(3_600_000))
     }
 
+    // formatRemainingTimeRoundUp — ceiling to nearest second
+    @Test
+    fun `formatRemainingTimeRoundUp rounds 1001ms up to two seconds`() {
+        assertEquals("00:02", formatRemainingTimeRoundUp(1001))
+    }
+
+    @Test
+    fun `formatRemainingTimeRoundUp keeps exact 1000ms as one second`() {
+        assertEquals("00:01", formatRemainingTimeRoundUp(1000))
+    }
+
+    @Test
+    fun `formatRemainingTimeRoundUp rounds 999ms up to one second`() {
+        assertEquals("00:01", formatRemainingTimeRoundUp(999))
+    }
+
+    @Test
+    fun `formatRemainingTimeRoundUp rounds 1ms up to one second`() {
+        assertEquals("00:01", formatRemainingTimeRoundUp(1))
+    }
+
+    @Test
+    fun `formatRemainingTimeRoundUp returns zero for 0ms`() {
+        assertEquals("00:00", formatRemainingTimeRoundUp(0))
+    }
+
+    @Test
+    fun `formatRemainingTimeRoundUp clamps negative to zero`() {
+        assertEquals("00:00", formatRemainingTimeRoundUp(-5000))
+    }
+
+    // anticipatedProgressMs — progress target for next sync moment
+    @Test
+    fun `anticipatedProgressMs subtracts full sync interval when remaining exceeds it`() {
+        assertEquals(4000L, anticipatedProgressMs(5000L, 1000L))
+    }
+
+    @Test
+    fun `anticipatedProgressMs clamps to zero on final partial interval`() {
+        assertEquals(0L, anticipatedProgressMs(500L, 1000L))
+    }
+
+    @Test
+    fun `anticipatedProgressMs returns zero when remaining equals sync interval`() {
+        assertEquals(0L, anticipatedProgressMs(1000L, 1000L))
+    }
+
+    @Test
+    fun `anticipatedProgressMs returns zero when remaining is zero`() {
+        assertEquals(0L, anticipatedProgressMs(0L, 1000L))
+    }
+
+    @Test
+    fun `anticipatedProgressMs clamps to zero for negative remaining`() {
+        assertEquals(0L, anticipatedProgressMs(-500L, 1000L))
+    }
+
     @Test
     fun `snooze options contains expected labels in order`() {
         val labels = SNOOZE_OPTIONS.map { it.first }

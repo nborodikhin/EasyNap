@@ -28,36 +28,45 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import me.easynap.R
 import me.easynap.TimerController
 import me.easynap.TimerState
+import me.easynap.anticipatedProgressMs
 import me.easynap.formatDurationCaption
-import me.easynap.formatRemainingTime
+import me.easynap.formatRemainingTimeRoundUp
 
 @Composable
 fun RunningScreen(state: TimerState.Running) {
     val totalMs = (state.durationMinutes * 60_000).toLong().coerceAtLeast(1L)
+    val syncInterval = 1_000L
     var remainingMs by remember { mutableLongStateOf(state.endAtMillis - System.currentTimeMillis()) }
 
-    val syncInterval = 1_000
-
     LaunchedEffect(state.endAtMillis) {
-        while (remainingMs > 0) {
-            // anticipation: progress bar should move to the time of the next sync
-            remainingMs = state.endAtMillis - System.currentTimeMillis() - syncInterval
-            delay(syncInterval.toLong())
+        while (true) {
+            delay(syncInterval)
+            val actual = state.endAtMillis - System.currentTimeMillis()
+            remainingMs = actual
+            if (actual <= 0) break
         }
     }
 
-    val rawFraction = (remainingMs.coerceAtLeast(0).toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
+    val anticipatedMs = anticipatedProgressMs(remainingMs, syncInterval)
+    val rawFraction = (anticipatedMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
     val fraction by animateFloatAsState(
         targetValue = rawFraction,
-        animationSpec = tween(durationMillis = syncInterval, easing = LinearEasing),
+        animationSpec = tween(durationMillis = syncInterval.toInt(), easing = LinearEasing),
         label = "timerProgress"
     )
-    val caption = formatDurationCaption(state.durationMinutes)
+
+    val displayMs = remainingMs.coerceIn(0L, totalMs)
+    val originalDurationMinutes by TimerController.napDurationMinutes.collectAsStateWithLifecycle()
+    val captionBase = formatDurationCaption(if (state.isSnooze) originalDurationMinutes else state.durationMinutes)
+    val caption = if (state.isSnooze) stringResource(R.string.countdown_caption_snoozed, captionBase) else captionBase
 
     Scaffold { padding ->
         Box(
@@ -89,7 +98,7 @@ fun RunningScreen(state: TimerState.Running) {
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = formatRemainingTime(remainingMs.coerceAtLeast(0)),
+                            text = formatRemainingTimeRoundUp(displayMs),
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontSize = 66.sp,
                                 fontFeatureSettings = "tnum",
@@ -97,7 +106,7 @@ fun RunningScreen(state: TimerState.Running) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "REMAINING",
+                            text = stringResource(R.string.countdown_remaining),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -117,7 +126,7 @@ fun RunningScreen(state: TimerState.Running) {
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             ) {
-                Text("Cancel nap", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.countdown_cancel_nap), style = MaterialTheme.typography.titleMedium)
             }
         }
     }
