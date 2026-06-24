@@ -10,11 +10,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import me.easynap.theme.EasyNapTheme
+import me.easynap.timer.TimerController
+import me.easynap.timer.TimerState
 import me.easynap.ui.RunningScreen
 import me.easynap.ui.SetupScreen
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var timerController: TimerController
 
     private val notifPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -27,10 +34,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             EasyNapTheme {
-                val timerState by TimerController.state.collectAsStateWithLifecycle()
+                val timerState by timerController.state.collectAsStateWithLifecycle()
                 when (timerState) {
-                    is TimerState.Idle -> SetupScreen()
-                    is TimerState.Running -> RunningScreen(timerState as TimerState.Running)
+                    is TimerState.Idle -> SetupScreen(timerController)
+                    is TimerState.Running -> RunningScreen(timerState as TimerState.Running, timerController)
                 }
             }
         }

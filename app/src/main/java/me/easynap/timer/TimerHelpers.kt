@@ -1,4 +1,4 @@
-package me.easynap
+package me.easynap.timer
 
 fun parseDurationMinutes(input: String): Float? {
     val v = input.trim().toFloatOrNull() ?: return null

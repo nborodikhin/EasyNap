@@ -1,10 +1,7 @@
 package me.easynap
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 
-class EasyNapApp : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        TimerController.init(this)
-    }
-}
+@HiltAndroidApp
+class EasyNapApp : Application()

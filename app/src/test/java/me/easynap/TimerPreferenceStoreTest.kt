@@ -4,10 +4,15 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import me.easynap.data.PersistedTimer
+import me.easynap.data.TimerPreferenceStore
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -74,6 +79,13 @@ class TimerPreferenceStoreTest {
         assertTrue(TimerPreferenceStore.withSeedDurations(listOf(25f, 10f, 5f)).containsAll(listOf(25f, 10f, 5f)))
     }
 
+    @Test(expected = CancellationException::class)
+    fun `data store cancellation is rethrown`() = runTest {
+        val store = TimerPreferenceStore(CancellingDataStore)
+
+        store.history.first()
+    }
+
     private fun TestScope.newStore(name: String): TimerPreferenceStore {
         val file = File.createTempFile(name, ".preferences_pb").also { tempFiles += it }
         val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
@@ -81,5 +93,15 @@ class TimerPreferenceStoreTest {
             produceFile = { file }
         )
         return TimerPreferenceStore(dataStore)
+    }
+
+    private object CancellingDataStore : DataStore<Preferences> {
+        override val data: Flow<Preferences> = flow {
+            throw CancellationException("cancelled")
+        }
+
+        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+            throw UnsupportedOperationException("Not used")
+        }
     }
 }

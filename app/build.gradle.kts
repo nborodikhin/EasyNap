@@ -1,6 +1,8 @@
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
+  alias(libs.plugins.hilt.android)
+  alias(libs.plugins.ksp)
 }
 
 android {
@@ -12,6 +14,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "me.easynap.HiltTestRunner"
     }
 
     buildTypes {
@@ -29,6 +32,12 @@ android {
       aidl = false
       buildConfig = false
       shaders = false
+    }
+
+    testOptions {
+      unitTests {
+        isIncludeAndroidResources = true
+      }
     }
 
     packaging {
@@ -60,14 +69,25 @@ dependencies {
   implementation(libs.androidx.compose.material3)
   debugImplementation(libs.androidx.compose.ui.tooling)
 
+  // Hilt
+  implementation(libs.hilt.android)
+  ksp(libs.hilt.android.compiler)
+
   // Instrumented tests
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
+  androidTestImplementation(libs.hilt.android.testing)
+  kspAndroidTest(libs.hilt.android.compiler)
 
   // Local tests
   testImplementation(libs.junit)
   testImplementation(libs.androidx.datastore.preferences.core)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.mockito.core)
+  testImplementation(libs.mockito.kotlin)
+  testImplementation(libs.robolectric)
+  testImplementation(libs.hilt.android.testing)
+  kspTest(libs.hilt.android.compiler)
 
   // Instrumented tests
   androidTestImplementation(libs.androidx.test.core)

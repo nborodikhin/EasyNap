@@ -1,5 +1,13 @@
 package me.easynap
 
+import me.easynap.timer.SNOOZE_OPTIONS
+import me.easynap.timer.anticipatedProgressMs
+import me.easynap.timer.appendToBuffer
+import me.easynap.timer.formatRemainingTime
+import me.easynap.timer.formatRemainingTimeRoundUp
+import me.easynap.timer.isCustomDurationInRange
+import me.easynap.timer.parseCustomDurationSeconds
+import me.easynap.timer.parseDurationMinutes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -241,5 +249,46 @@ class TimerHelpersTest {
     @Test
     fun `isCustomDurationInRange accepts mid-range value`() {
         assertTrue(isCustomDurationInRange(30 * 60))
+    }
+
+    // appendToBuffer — keypad input logic
+    @Test
+    fun `appendToBuffer appends digit within limit`() {
+        assertEquals("12", appendToBuffer("1", "2"))
+    }
+
+    @Test
+    fun `appendToBuffer rejects digit at three-digit limit`() {
+        assertEquals("123", appendToBuffer("123", "4"))
+    }
+
+    @Test
+    fun `appendToBuffer inserts colon when not present and buffer non-empty`() {
+        assertEquals("12:", appendToBuffer("12", ":"))
+    }
+
+    @Test
+    fun `appendToBuffer rejects colon when already present`() {
+        assertEquals("12:3", appendToBuffer("12:3", ":"))
+    }
+
+    @Test
+    fun `appendToBuffer removes last character on backspace`() {
+        assertEquals("12", appendToBuffer("123", "⌫"))
+    }
+
+    @Test
+    fun `appendToBuffer no-op backspace on empty buffer`() {
+        assertEquals("", appendToBuffer("", "⌫"))
+    }
+
+    @Test
+    fun `appendToBuffer rejects digit when seconds field already has two digits`() {
+        assertEquals("12:30", appendToBuffer("12:30", "5"))
+    }
+
+    @Test
+    fun `appendToBuffer allows second digit in seconds field`() {
+        assertEquals("12:35", appendToBuffer("12:3", "5"))
     }
 }

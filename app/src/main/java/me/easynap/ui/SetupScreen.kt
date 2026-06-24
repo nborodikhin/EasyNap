@@ -8,21 +8,22 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.ui.res.stringResource
-import me.easynap.R
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,39 +35,46 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import me.easynap.TimerController
-import me.easynap.appendToBuffer
-import me.easynap.formatDurationLabel
-import me.easynap.formatDurationUnit
-import me.easynap.formatNapDescription
-import me.easynap.isCustomDurationInRange
-import me.easynap.parseCustomDurationSeconds
+import me.easynap.R
+import me.easynap.theme.EasyNapTheme
+import me.easynap.timer.TimerController
+import me.easynap.timer.appendToBuffer
+import me.easynap.timer.formatDurationLabel
+import me.easynap.timer.formatDurationUnit
+import me.easynap.timer.formatNapDescription
+import me.easynap.timer.isCustomDurationInRange
+import me.easynap.timer.parseCustomDurationSeconds
+import me.easynap.data.TimerPreferenceStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen() {
-    var showCustomSheet by remember { mutableStateOf(false) }
-    val history by TimerController.history.collectAsStateWithLifecycle()
+fun SetupScreen(timerController: TimerController) {
+    var showCustomSheet by rememberSaveable { mutableStateOf(false) }
+    val history by timerController.history.collectAsStateWithLifecycle()
 
     Scaffold { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
         ) {
             Spacer(Modifier.height(18.dp))
@@ -90,7 +98,7 @@ fun SetupScreen() {
             Spacer(Modifier.height(42.dp))
             DurationGrid(
                 durations = history,
-                onDurationSelected = { TimerController.start(it) },
+                onDurationSelected = { timerController.start(it) },
                 onCustom = { showCustomSheet = true }
             )
             Spacer(Modifier.height(28.dp))
@@ -102,14 +110,14 @@ fun SetupScreen() {
             onDismiss = { showCustomSheet = false },
             onStart = { seconds ->
                 showCustomSheet = false
-                TimerController.start(seconds / 60f)
+                timerController.start(seconds / 60f)
             }
         )
     }
 }
 
 @Composable
-private fun DurationGrid(
+internal fun DurationGrid(
     durations: List<Float>,
     onDurationSelected: (Float) -> Unit,
     onCustom: () -> Unit
@@ -139,7 +147,7 @@ private fun DurationGrid(
 }
 
 @Composable
-private fun DurationTile(minutes: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DurationTile(minutes: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isWhole = minutes % 1f == 0f
     Card(
         onClick = onClick,
@@ -176,7 +184,7 @@ private fun DurationTile(minutes: Float, onClick: () -> Unit, modifier: Modifier
 }
 
 @Composable
-private fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onClick,
         modifier = modifier.heightIn(min = 72.dp),
@@ -209,9 +217,9 @@ private fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
+internal fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var inputBuffer by remember { mutableStateOf("") }
+    var inputBuffer by rememberSaveable { mutableStateOf("") }
 
     val parsedSeconds = parseCustomDurationSeconds(inputBuffer)
     val isOutOfRange = parsedSeconds != null && !isCustomDurationInRange(parsedSeconds)
@@ -233,61 +241,32 @@ private fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        scrimColor = Color(0x8C080C0B)
+        scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(R.string.custom_duration_title),
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(20.dp))
-
-            ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha)
-            Spacer(Modifier.height(6.dp))
-
-            val helperColor = if (isOutOfRange) MaterialTheme.colorScheme.error
-                              else MaterialTheme.colorScheme.onSurface
-            val helperText = when {
-                isOutOfRange -> stringResource(R.string.custom_duration_error)
-                isStartEnabled && parsedSeconds != null -> formatNapDescription(parsedSeconds)
-                else -> ""
-            }
-            Text(
-                text = helperText,
-                style = MaterialTheme.typography.bodySmall,
-                color = helperColor
-            )
-            Spacer(Modifier.height(20.dp))
-
-            NumericKeypad(
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            CustomDurationSheetContent(
+                inputBuffer = inputBuffer,
+                cursorAlpha = cursorAlpha,
+                parsedSeconds = parsedSeconds,
+                isOutOfRange = isOutOfRange,
+                isStartEnabled = isStartEnabled,
+                title = stringResource(R.string.custom_duration_title),
+                errorText = stringResource(R.string.custom_duration_error),
+                startText = stringResource(R.string.custom_duration_start),
+                compactLandscape = maxWidth > maxHeight && maxHeight < 600.dp,
                 onKey = { key -> inputBuffer = appendToBuffer(inputBuffer, key) },
-                colonEnabled = inputBuffer.isNotEmpty() && ':' !in inputBuffer
+                onStart = onStart
             )
-            Spacer(Modifier.height(20.dp))
-
-            Button(
-                onClick = { if (parsedSeconds != null) onStart(parsedSeconds) },
-                enabled = isStartEnabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = CircleShape
-            ) {
-                Text(stringResource(R.string.custom_duration_start), style = MaterialTheme.typography.titleMedium)
-            }
         }
     }
 }
 
 @Composable
-private fun ValueDisplay(inputBuffer: String, cursorAlpha: Float) {
+internal fun ValueDisplay(
+    inputBuffer: String,
+    cursorAlpha: Float,
+    fontSize: TextUnit = 52.sp
+) {
     val primary = MaterialTheme.colorScheme.primary
     Box(
         modifier = Modifier
@@ -307,7 +286,7 @@ private fun ValueDisplay(inputBuffer: String, cursorAlpha: Float) {
             Text(
                 text = inputBuffer,
                 style = TextStyle(
-                    fontSize = 52.sp,
+                    fontSize = fontSize,
                     fontWeight = FontWeight.Light,
                     fontFeatureSettings = "tnum"
                 ),
@@ -315,7 +294,7 @@ private fun ValueDisplay(inputBuffer: String, cursorAlpha: Float) {
             )
             Text(
                 text = "|",
-                style = TextStyle(fontSize = 52.sp, fontWeight = FontWeight.Light),
+                style = TextStyle(fontSize = fontSize, fontWeight = FontWeight.Light),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha)
             )
         }
@@ -323,17 +302,27 @@ private fun ValueDisplay(inputBuffer: String, cursorAlpha: Float) {
 }
 
 @Composable
-private fun NumericKeypad(onKey: (String) -> Unit, colonEnabled: Boolean) {
+internal fun NumericKeypad(
+    onKey: (String) -> Unit,
+    colonEnabled: Boolean,
+    modifier: Modifier = Modifier,
+    keyHeight: Dp = 56.dp,
+    spacing: Dp = 8.dp,
+    keyFontSize: TextUnit = 23.sp
+) {
     val rows = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
         listOf(":", "0", "⌫")
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(spacing)
+    ) {
         rows.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(spacing),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 row.forEach { key ->
@@ -344,6 +333,8 @@ private fun NumericKeypad(onKey: (String) -> Unit, colonEnabled: Boolean) {
                         onClick = { onKey(key) },
                         enabled = enabled,
                         isSpecial = isSpecial,
+                        height = keyHeight,
+                        fontSize = keyFontSize,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -353,17 +344,19 @@ private fun NumericKeypad(onKey: (String) -> Unit, colonEnabled: Boolean) {
 }
 
 @Composable
-private fun KeypadButton(
+internal fun KeypadButton(
     label: String,
     onClick: () -> Unit,
     enabled: Boolean,
     isSpecial: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    height: Dp = 56.dp,
+    fontSize: TextUnit = 23.sp
 ) {
     Card(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.height(height),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -373,11 +366,311 @@ private fun KeypadButton(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                fontSize = 23.sp,
+                fontSize = fontSize,
                 color = if (isSpecial) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
         }
     }
+}
+
+@Composable
+private fun CustomDurationSheetContent(
+    inputBuffer: String,
+    cursorAlpha: Float,
+    parsedSeconds: Int?,
+    isOutOfRange: Boolean,
+    isStartEnabled: Boolean,
+    title: String,
+    errorText: String,
+    startText: String,
+    compactLandscape: Boolean,
+    onKey: (String) -> Unit,
+    onStart: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val helperColor = if (isOutOfRange) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val helperText = when {
+        isOutOfRange -> errorText
+        isStartEnabled && parsedSeconds != null -> formatNapDescription(parsedSeconds)
+        else -> ""
+    }
+
+    if (compactLandscape) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(0.9f)
+                    .widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(12.dp))
+                ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha, fontSize = 44.sp)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = helperText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = helperColor
+                )
+                Spacer(Modifier.height(16.dp))
+                StartDurationButton(
+                    text = startText,
+                    enabled = isStartEnabled,
+                    parsedSeconds = parsedSeconds,
+                    onStart = onStart
+                )
+            }
+            NumericKeypad(
+                onKey = onKey,
+                colonEnabled = inputBuffer.isNotEmpty() && ':' !in inputBuffer,
+                modifier = Modifier.weight(1.25f),
+                keyHeight = 48.dp,
+                keyFontSize = 21.sp
+            )
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(20.dp))
+            ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = helperText,
+                style = MaterialTheme.typography.bodySmall,
+                color = helperColor
+            )
+            Spacer(Modifier.height(20.dp))
+            NumericKeypad(
+                onKey = onKey,
+                colonEnabled = inputBuffer.isNotEmpty() && ':' !in inputBuffer
+            )
+            Spacer(Modifier.height(20.dp))
+            StartDurationButton(
+                text = startText,
+                enabled = isStartEnabled,
+                parsedSeconds = parsedSeconds,
+                onStart = onStart
+            )
+        }
+    }
+}
+
+@Composable
+private fun StartDurationButton(
+    text: String,
+    enabled: Boolean,
+    parsedSeconds: Int?,
+    onStart: (Int) -> Unit
+) {
+    Button(
+        onClick = { if (parsedSeconds != null) onStart(parsedSeconds) },
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = CircleShape
+    ) {
+        Text(text, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+// ── Previews ──────────────────────────────────────────────────────────────────
+
+@Preview(showBackground = true, name = "SetupScreen")
+@Composable
+private fun SetupScreenPreview() {
+    EasyNapTheme {
+        SetupScreenStateless(
+            history = TimerPreferenceStore.DEFAULT_HISTORY,
+            onDurationSelected = {},
+            onCustom = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "DurationGrid - seed durations")
+@Composable
+private fun DurationGridPreview() {
+    EasyNapTheme {
+        DurationGrid(
+            durations = TimerPreferenceStore.DEFAULT_HISTORY,
+            onDurationSelected = {},
+            onCustom = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "DurationTile - whole minute")
+@Composable
+private fun DurationTileWholePreview() {
+    EasyNapTheme { DurationTile(minutes = 10f, onClick = {}) }
+}
+
+@Preview(showBackground = true, name = "DurationTile - fractional")
+@Composable
+private fun DurationTileFractionalPreview() {
+    EasyNapTheme { DurationTile(minutes = 1.5f, onClick = {}) }
+}
+
+@Preview(showBackground = true, name = "CustomTile")
+@Composable
+private fun CustomTilePreview() {
+    EasyNapTheme { CustomTile(onClick = {}) }
+}
+
+@Preview(showBackground = true, name = "CustomDurationSheet - empty buffer")
+@Composable
+private fun CustomDurationSheetEmptyPreview() {
+    EasyNapTheme {
+        CustomDurationSheetStateless(inputBuffer = "", cursorAlpha = 1f, onKey = {}, onStart = {})
+    }
+}
+
+@Preview(showBackground = true, name = "CustomDurationSheet - filled buffer")
+@Composable
+private fun CustomDurationSheetFilledPreview() {
+    EasyNapTheme {
+        CustomDurationSheetStateless(inputBuffer = "12:30", cursorAlpha = 0f, onKey = {}, onStart = {})
+    }
+}
+
+@Preview(
+    showBackground = true,
+    name = "CustomDurationSheet - compact landscape",
+    widthDp = 960,
+    heightDp = 420
+)
+@Composable
+private fun CustomDurationSheetCompactLandscapePreview() {
+    EasyNapTheme {
+        CustomDurationSheetStateless(
+            inputBuffer = "12:30",
+            cursorAlpha = 0f,
+            onKey = {},
+            onStart = {},
+            compactLandscape = true
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "ValueDisplay - empty")
+@Composable
+private fun ValueDisplayEmptyPreview() {
+    EasyNapTheme { ValueDisplay(inputBuffer = "", cursorAlpha = 1f) }
+}
+
+@Preview(showBackground = true, name = "ValueDisplay - filled")
+@Composable
+private fun ValueDisplayFilledPreview() {
+    EasyNapTheme { ValueDisplay(inputBuffer = "12:30", cursorAlpha = 0f) }
+}
+
+@Preview(showBackground = true, name = "NumericKeypad - colon enabled")
+@Composable
+private fun NumericKeypadColonEnabledPreview() {
+    EasyNapTheme { NumericKeypad(onKey = {}, colonEnabled = true) }
+}
+
+@Preview(showBackground = true, name = "NumericKeypad - colon disabled")
+@Composable
+private fun NumericKeypadColonDisabledPreview() {
+    EasyNapTheme { NumericKeypad(onKey = {}, colonEnabled = false) }
+}
+
+@Preview(showBackground = true, name = "KeypadButton - normal")
+@Composable
+private fun KeypadButtonNormalPreview() {
+    EasyNapTheme { KeypadButton(label = "5", onClick = {}, enabled = true, isSpecial = false) }
+}
+
+@Preview(showBackground = true, name = "KeypadButton - special")
+@Composable
+private fun KeypadButtonSpecialPreview() {
+    EasyNapTheme { KeypadButton(label = "⌫", onClick = {}, enabled = true, isSpecial = true) }
+}
+
+@Preview(showBackground = true, name = "KeypadButton - disabled")
+@Composable
+private fun KeypadButtonDisabledPreview() {
+    EasyNapTheme { KeypadButton(label = ":", onClick = {}, enabled = false, isSpecial = true) }
+}
+
+// Stateless helpers for previews that need to avoid real controller state
+
+@Composable
+private fun SetupScreenStateless(
+    history: List<Float>,
+    onDurationSelected: (Float) -> Unit,
+    onCustom: () -> Unit
+) {
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+        ) {
+            Spacer(Modifier.height(18.dp))
+            Text("EasyNap", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(28.dp))
+            Text("Take a nap", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(8.dp))
+            Text("Choose your duration", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(42.dp))
+            DurationGrid(durations = history, onDurationSelected = onDurationSelected, onCustom = onCustom)
+            Spacer(Modifier.height(28.dp))
+        }
+    }
+}
+
+@Composable
+private fun CustomDurationSheetStateless(
+    inputBuffer: String,
+    cursorAlpha: Float,
+    onKey: (String) -> Unit,
+    onStart: (Int) -> Unit,
+    compactLandscape: Boolean = false
+) {
+    val parsedSeconds = parseCustomDurationSeconds(inputBuffer)
+    val isOutOfRange = parsedSeconds != null && !isCustomDurationInRange(parsedSeconds)
+    val isStartEnabled = parsedSeconds != null && isCustomDurationInRange(parsedSeconds)
+    CustomDurationSheetContent(
+        inputBuffer = inputBuffer,
+        cursorAlpha = cursorAlpha,
+        parsedSeconds = parsedSeconds,
+        isOutOfRange = isOutOfRange,
+        isStartEnabled = isStartEnabled,
+        title = "Set duration",
+        errorText = "Duration out of range",
+        startText = "Start nap",
+        compactLandscape = compactLandscape,
+        onKey = onKey,
+        onStart = onStart
+    )
 }

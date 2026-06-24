@@ -1,4 +1,4 @@
-package me.easynap
+package me.easynap.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -11,6 +11,9 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import java.io.IOException
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -23,23 +26,16 @@ val Context.timerDataStore: DataStore<Preferences> by preferencesDataStore(
     }
 )
 
-data class PersistedTimer(
-    val endAtMillis: Long,
-    val durationMinutes: Float
-)
-
-class TimerPreferenceStore(
+@Singleton
+class TimerPreferenceStore @Inject constructor(
     private val dataStore: DataStore<Preferences>
-) {
-    val activeTimer: Flow<PersistedTimer?> = dataStore.safeData.map { preferences ->
-        preferences.toActiveTimer(System.currentTimeMillis())
-    }
+) : TimerStore {
 
-    val napDurationMinutes: Flow<Float> = dataStore.safeData.map { preferences ->
+    override val napDurationMinutes: Flow<Float> = dataStore.safeData.map { preferences ->
         preferences[KEY_DURATION] ?: 0f
     }
 
-    val history: Flow<List<Float>> = dataStore.safeData.map { preferences ->
+    override val history: Flow<List<Float>> = dataStore.safeData.map { preferences ->
         withSeedDurations(preferences.parseStoredHistory())
     }
 
@@ -47,15 +43,15 @@ class TimerPreferenceStore(
         preferences.parseStoredHistory().take(3)
     }
 
-    suspend fun loadActiveTimer(nowMillis: Long = System.currentTimeMillis()): PersistedTimer? {
+    override suspend fun loadActiveTimer(nowMillis: Long): PersistedTimer? {
         return dataStore.safeData.first().toActiveTimer(nowMillis)
     }
 
-    suspend fun getNapDurationMinutes(): Float {
+    override suspend fun getNapDurationMinutes(): Float {
         return napDurationMinutes.first()
     }
 
-    suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateHistory: Boolean) {
+    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateHistory: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_END_AT] = endAtMillis
             if (updateHistory) {
@@ -66,7 +62,7 @@ class TimerPreferenceStore(
         }
     }
 
-    suspend fun clearActiveTimer() {
+    override suspend fun clearActiveTimer() {
         dataStore.edit { preferences ->
             preferences.remove(KEY_END_AT)
         }
@@ -116,9 +112,9 @@ class TimerPreferenceStore(
 
 private val DataStore<Preferences>.safeData: Flow<Preferences>
     get() = data.catch { exception ->
-        if (exception is IOException) {
-            emit(emptyPreferences())
-        } else {
-            throw exception
+        when (exception) {
+            is CancellationException -> throw exception
+            is IOException -> emit(emptyPreferences())
+            else -> throw exception
         }
     }

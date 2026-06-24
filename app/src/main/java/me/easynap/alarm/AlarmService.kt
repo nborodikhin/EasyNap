@@ -1,4 +1,4 @@
-package me.easynap
+package me.easynap.alarm
 
 import android.app.PendingIntent
 import android.app.Service
@@ -16,7 +16,11 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import dagger.hilt.android.AndroidEntryPoint
+import me.easynap.R
+import me.easynap.service.NapTimerService
 
+@AndroidEntryPoint
 class AlarmService : Service() {
 
     companion object {
@@ -64,9 +68,9 @@ class AlarmService : Service() {
         startForeground(
             NOTIF_ID_ALARM,
             NotificationCompat.Builder(this, NapTimerService.CHANNEL_ALARM)
-                .setContentTitle("EasyNap")
-                .setContentText("Time to wake up!")
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle(getString(R.string.notif_app_name))
+                .setContentText(getString(R.string.notif_alarm_text))
+                .setSmallIcon(R.drawable.ic_notification)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setFullScreenIntent(fullScreenPi, true)
@@ -108,7 +112,7 @@ class AlarmService : Service() {
     private fun stopAlarm() {
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
-        sendBroadcast(Intent(AlarmActivity.ACTION_FINISH))
+        sendBroadcast(Intent(AlarmActivity.ACTION_FINISH).setPackage(packageName))
     }
 
     private fun acquireWakeLock() {

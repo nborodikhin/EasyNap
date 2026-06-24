@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">EasyNap</string>
+    <string name="app_name">Easy Nap</string>
     <string name="home_title">Easy Nap</string>
     <string name="home_headline">Ready to rest?</string>
     <string name="home_subtitle">Tap a length to start your nap</string>
@@ -9,4 +9,11 @@
     <string name="custom_duration_start">Start nap</string>
     <string name="custom_duration_error">Enter 0:05 – 120 min</string>
     <string name="countdown_caption_snoozed">%1$s (snoozed)</string>
+    <string name="notif_app_name">EasyNap</string>
+    <string name="notif_timer_remaining">Remaining: %1$s</string>
+    <string name="notif_alarm_text">Time to wake up!</string>
+    <string name="alarm_headline">Time to wake up</string>
+    <string name="alarm_body">Your %1$s-minute nap is done. Hope you feel refreshed.</string>
+    <string name="alarm_stop">Stop</string>
+    <string name="alarm_snooze_label">SNOOZE</string>
 </resources>

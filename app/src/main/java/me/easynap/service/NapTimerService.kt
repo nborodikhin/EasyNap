@@ -1,4 +1,4 @@
-package me.easynap
+package me.easynap.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -11,12 +11,19 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import me.easynap.MainActivity
+import me.easynap.R
+import me.easynap.data.TimerStore
+import me.easynap.timer.formatRemainingTime
 
+@AndroidEntryPoint
 class NapTimerService : Service() {
 
     companion object {
@@ -24,6 +31,8 @@ class NapTimerService : Service() {
         const val CHANNEL_ALARM = "alarm_channel"
         const val NOTIF_ID_TIMER = 1
     }
+
+    @Inject internal lateinit var store: TimerStore
 
     private val handler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -47,16 +56,17 @@ class NapTimerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForeground(NOTIF_ID_TIMER, buildNotification(0L))
         serviceScope.launch {
-            val activeTimer = TimerPreferenceStore(applicationContext.timerDataStore)
-                .loadActiveTimer()
+            val activeTimer = store.loadActiveTimer()
             if (activeTimer == null) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf(startId)
                 return@launch
             }
             endAtMillis = activeTimer.endAtMillis
             val remaining = endAtMillis - System.currentTimeMillis()
-            startForeground(NOTIF_ID_TIMER, buildNotification(remaining))
+            updateNotification(remaining)
             handler.removeCallbacks(tick)
             handler.post(tick)
         }
@@ -95,9 +105,9 @@ class NapTimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_TIMER)
-            .setContentTitle("EasyNap")
-            .setContentText("Remaining: ${formatRemainingTime(remainingMs)}")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle(getString(R.string.notif_app_name))
+            .setContentText(getString(R.string.notif_timer_remaining, formatRemainingTime(remainingMs)))
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(openAppPi)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

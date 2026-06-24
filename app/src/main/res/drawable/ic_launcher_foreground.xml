@@ -24,14 +24,14 @@
     -->
     <group
         android:rotation="-30"
-        android:pivotX="35"
-        android:pivotY="23">
+        android:pivotX="54"
+        android:pivotY="54">
         <path
             android:fillColor="#00000000"
             android:strokeColor="#5AD6C5"
             android:strokeWidth="5"
             android:strokeLineCap="round"
-            android:pathData="M28.5,32 L28.5,23 A6.5,6.5 0 0 1 41.5,23 L41.5,32" />
+            android:pathData="M47.5,30 L47.5,23 A6.5,6.5 0 0 1 60.5,23 L60.5,30" />
     </group>
 
     <!--
@@ -39,14 +39,14 @@
     -->
     <group
         android:rotation="30"
-        android:pivotX="73"
-        android:pivotY="23">
+        android:pivotX="54"
+        android:pivotY="54">
         <path
             android:fillColor="#00000000"
             android:strokeColor="#5AD6C5"
             android:strokeWidth="5"
             android:strokeLineCap="round"
-            android:pathData="M66.5,32 L66.5,23 A6.5,6.5 0 0 1 79.5,23 L79.5,32" />
+            android:pathData="M47.5,30 L47.5,23 A6.5,6.5 0 0 1 60.5,23 L60.5,30" />
     </group>
 
     <!--

@@ -1,4 +1,4 @@
-package me.easynap
+package me.easynap.timer
 
 sealed class TimerState {
     object Idle : TimerState()

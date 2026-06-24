@@ -1,9 +1,12 @@
-package me.easynap
+package me.easynap.timer
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,29 +14,32 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import me.easynap.alarm.AlarmReceiver
+import me.easynap.data.TimerStore
+import me.easynap.service.NapTimerService
 
-object TimerController {
+@Singleton
+class TimerController @Inject constructor(
+    private val store: TimerStore,
+    @ApplicationContext private val context: Context
+) {
+    companion object {
+        private const val PAD_MS_SHORT = 990L
+        private const val PAD_MS_LONG = 1_990L
+    }
 
-    private const val PAD_MS_SHORT = 990L
-    private const val PAD_MS_LONG = 1_990L
-
-    private lateinit var appContext: Context
-    private lateinit var store: TimerPreferenceStore
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
     val state: StateFlow<TimerState> = _state.asStateFlow()
 
-    private val _history = MutableStateFlow(TimerPreferenceStore.DEFAULT_HISTORY)
+    private val _history = MutableStateFlow(me.easynap.data.TimerPreferenceStore.DEFAULT_HISTORY)
     val history: StateFlow<List<Float>> = _history.asStateFlow()
 
     private val _napDurationMinutes = MutableStateFlow(0f)
     val napDurationMinutes: StateFlow<Float> = _napDurationMinutes.asStateFlow()
 
-    fun init(context: Context) {
-        if (::appContext.isInitialized) return
-        appContext = context.applicationContext
-        store = TimerPreferenceStore(appContext.timerDataStore)
+    init {
         scope.launch {
             store.history.collect { _history.value = it }
         }
@@ -85,28 +91,28 @@ object TimerController {
     }
 
     fun stopCountdownService() {
-        appContext.stopService(Intent(appContext, NapTimerService::class.java))
+        context.stopService(Intent(context, NapTimerService::class.java))
     }
 
     private fun startCountdownService() {
-        appContext.startForegroundService(Intent(appContext, NapTimerService::class.java))
+        context.startForegroundService(Intent(context, NapTimerService::class.java))
     }
 
     private fun scheduleAlarm(endAt: Long) {
-        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = alarmPendingIntent()
         alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(endAt, pi), pi)
     }
 
     private fun cancelAlarm() {
-        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(alarmPendingIntent())
     }
 
     private fun alarmPendingIntent(): PendingIntent {
-        val intent = Intent(appContext, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java)
         return PendingIntent.getBroadcast(
-            appContext,
+            context,
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

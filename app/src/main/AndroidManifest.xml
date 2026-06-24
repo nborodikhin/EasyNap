@@ -29,14 +29,14 @@
         </activity>
 
         <activity
-            android:name=".AlarmActivity"
+            android:name=".alarm.AlarmActivity"
             android:exported="false"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:launchMode="singleInstance" />
 
         <service
-            android:name=".NapTimerService"
+            android:name=".service.NapTimerService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
@@ -45,12 +45,12 @@
         </service>
 
         <service
-            android:name=".AlarmService"
+            android:name=".alarm.AlarmService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
         <receiver
-            android:name=".AlarmReceiver"
+            android:name=".alarm.AlarmReceiver"
             android:exported="false" />
 
     </application>
