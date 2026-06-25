@@ -1,7 +1,6 @@
 package me.easynap.service
 
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -21,14 +20,15 @@ import kotlinx.coroutines.launch
 import me.easynap.MainActivity
 import me.easynap.R
 import me.easynap.data.TimerStore
+import me.easynap.notifications.EasyNapNotifications
 import me.easynap.timer.formatRemainingTime
 
 @AndroidEntryPoint
 class NapTimerService : Service() {
 
     companion object {
-        const val CHANNEL_TIMER = "timer_channel"
-        const val CHANNEL_ALARM = "alarm_channel"
+        const val CHANNEL_TIMER = EasyNapNotifications.CHANNEL_TIMER
+        const val CHANNEL_ALARM = EasyNapNotifications.CHANNEL_ALARM
         const val NOTIF_ID_TIMER = 1
     }
 
@@ -52,7 +52,7 @@ class NapTimerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannels()
+        EasyNapNotifications.ensureChannels(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -80,21 +80,6 @@ class NapTimerService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-
-    private fun createNotificationChannels() {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val timerChannel = NotificationChannel(CHANNEL_TIMER, "Timer", NotificationManager.IMPORTANCE_LOW).apply {
-            setSound(null, null)
-        }
-        nm.createNotificationChannel(timerChannel)
-
-        val alarmChannel = NotificationChannel(CHANNEL_ALARM, "Alarm", NotificationManager.IMPORTANCE_HIGH).apply {
-            setSound(null, null)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-        }
-        nm.createNotificationChannel(alarmChannel)
-    }
 
     private fun buildNotification(remainingMs: Long): Notification {
         val openAppPi = PendingIntent.getActivity(

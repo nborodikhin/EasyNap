@@ -12,6 +12,9 @@
     <string name="notif_app_name">EasyNap</string>
     <string name="notif_timer_remaining">Remaining: %1$s</string>
     <string name="notif_alarm_text">Time to wake up!</string>
+    <string name="notification_channel_timer">Timer</string>
+    <string name="notification_channel_alarm">Alarm</string>
+    <string name="enable_notifications_prompt">Enable notifications</string>
     <string name="alarm_headline">Time to wake up</string>
     <string name="alarm_body">Your %1$s-minute nap is done. Hope you feel refreshed.</string>
     <string name="alarm_stop">Stop</string>

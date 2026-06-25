@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,44 +65,61 @@ import me.easynap.data.TimerPreferenceStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen(timerController: TimerController) {
+fun SetupScreen(
+    timerController: TimerController,
+    alarmNotificationsAvailable: Boolean = true,
+    onEnableNotificationsClick: () -> Unit = {}
+) {
     var showCustomSheet by rememberSaveable { mutableStateOf(false) }
     val history by timerController.history.collectAsStateWithLifecycle()
 
     Scaffold { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .consumeWindowInsets(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
         ) {
-            Spacer(Modifier.height(18.dp))
-            Text(
-                stringResource(R.string.home_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+            ) {
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    stringResource(R.string.home_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(28.dp))
+                Text(
+                    stringResource(R.string.home_headline),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.home_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(42.dp))
+                DurationGrid(
+                    durations = history,
+                    onDurationSelected = { timerController.start(it) },
+                    onCustom = { showCustomSheet = true }
+                )
+                Spacer(Modifier.height(28.dp))
+            }
+
+            EnableNotificationsPrompt(
+                alarmNotificationsAvailable = alarmNotificationsAvailable,
+                onClick = onEnableNotificationsClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             )
-            Spacer(Modifier.height(28.dp))
-            Text(
-                stringResource(R.string.home_headline),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.home_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(42.dp))
-            DurationGrid(
-                durations = history,
-                onDurationSelected = { timerController.start(it) },
-                onCustom = { showCustomSheet = true }
-            )
-            Spacer(Modifier.height(28.dp))
         }
     }
 
@@ -112,6 +130,22 @@ fun SetupScreen(timerController: TimerController) {
                 showCustomSheet = false
                 timerController.start(seconds / 60f)
             }
+        )
+    }
+}
+
+@Composable
+internal fun EnableNotificationsPrompt(
+    alarmNotificationsAvailable: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!alarmNotificationsAvailable) {
+        Text(
+            text = stringResource(R.string.enable_notifications_prompt),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = modifier.clickable(onClick = onClick)
         )
     }
 }

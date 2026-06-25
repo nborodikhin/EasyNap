@@ -55,6 +55,7 @@ kotlin {
 dependencies {
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
+  testImplementation(composeBom)
   androidTestImplementation(composeBom)
 
   // Core Android
@@ -87,6 +88,8 @@ dependencies {
   testImplementation(libs.mockito.core)
   testImplementation(libs.mockito.kotlin)
   testImplementation(libs.robolectric)
+  testImplementation(libs.androidx.test.ext.junit)
+  testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.hilt.android.testing)
   kspTest(libs.hilt.android.compiler)
 

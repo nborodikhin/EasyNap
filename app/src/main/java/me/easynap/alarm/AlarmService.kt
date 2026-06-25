@@ -18,6 +18,7 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import me.easynap.R
+import me.easynap.notifications.EasyNapNotifications
 import me.easynap.service.NapTimerService
 
 @AndroidEntryPoint
@@ -55,6 +56,7 @@ class AlarmService : Service() {
             return START_NOT_STICKY
         }
 
+        EasyNapNotifications.ensureChannels(this)
         acquireWakeLock()
 
         val alarmActivityIntent = Intent(this, AlarmActivity::class.java).apply {
