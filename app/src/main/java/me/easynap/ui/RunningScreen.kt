@@ -1,9 +1,11 @@
 package me.easynap.ui
 
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,7 +33,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -76,6 +85,9 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
     val captionBase = formatDurationCaption(if (state.isSnooze) originalDurationMinutes else state.durationMinutes)
     val caption = if (state.isSnooze) stringResource(R.string.countdown_caption_snoozed, captionBase) else captionBase
 
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val focusRequester = remember { FocusRequester() }
+
     Scaffold { padding ->
         BoxWithConstraints(
             modifier = Modifier
@@ -83,6 +95,14 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .padding(horizontal = 20.dp, vertical = 24.dp)
+                .focusRequester(focusRequester)
+                .focusable()
+                .onKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                        backDispatcher?.onBackPressed()
+                        true
+                    } else false
+                }
         ) {
             RunningScreenContent(
                 caption = caption,
@@ -95,6 +115,7 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
             )
         }
     }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 @Composable

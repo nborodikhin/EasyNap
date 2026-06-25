@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the idle setup screen where the user enters a duration or picks a quick-start preset to begin a nap timer.
-
 ## Requirements
-
 ### Requirement: Duration entry field
 The main screen SHALL NOT display an inline duration text field. Instead, it SHALL provide a Custom duration entry point that opens a modal bottom sheet over the home screen for precise duration entry.
 
@@ -122,19 +120,27 @@ The main/setup screen SHALL be presented only when no timer is currently active.
 - **THEN** the setup screen is not shown; the running‑timer screen is shown instead
 
 ### Requirement: Disabled notification prompt
-The setup screen SHALL show a bottom-end text prompt asking the user to enable notifications when alarm notifications are effectively unavailable. Alarm notifications SHALL be considered unavailable when app notifications are disabled or the alarm notification channel has `IMPORTANCE_NONE`.
+The setup screen SHALL show a bottom-end text prompt asking the user to enable notifications when alarm notifications are effectively unavailable. Alarm notifications SHALL be considered unavailable when app notifications are disabled or the alarm notification channel has `IMPORTANCE_NONE`. The prompt SHALL reflect the current notification availability immediately on initial setup-screen display. After the setup screen is visible, subsequent prompt visibility changes SHALL fade in when alarm notifications become unavailable and fade out when alarm notifications become available.
 
 #### Scenario: Prompt appears when app notifications are disabled
-- **WHEN** the app is idle on the setup screen and app notifications are disabled
-- **THEN** the setup screen shows a bottom-end prompt asking the user to enable notifications
+- **WHEN** the app is idle on the setup screen and app notifications are disabled before the setup screen is displayed
+- **THEN** the setup screen shows a bottom-end prompt asking the user to enable notifications without waiting for an entrance animation
 
 #### Scenario: Prompt appears when alarm channel is blocked
-- **WHEN** the app is idle on the setup screen and the alarm notification channel has `IMPORTANCE_NONE`
-- **THEN** the setup screen shows a bottom-end prompt asking the user to enable notifications
+- **WHEN** the app is idle on the setup screen and the alarm notification channel has `IMPORTANCE_NONE` before the setup screen is displayed
+- **THEN** the setup screen shows a bottom-end prompt asking the user to enable notifications without waiting for an entrance animation
 
 #### Scenario: Prompt is hidden when alarm notifications are available
 - **WHEN** the app is idle on the setup screen, app notifications are enabled, and the alarm notification channel importance is not `IMPORTANCE_NONE`
 - **THEN** the setup screen does not show the enable-notifications prompt
+
+#### Scenario: Prompt fades in after visible notification denial
+- **WHEN** the setup screen is visible without the prompt and alarm notifications become unavailable while the setup screen remains visible
+- **THEN** the enable-notifications prompt fades in at the bottom end of the setup screen
+
+#### Scenario: Prompt fades out after visible notification enablement
+- **WHEN** the setup screen is visible with the prompt and alarm notifications become available while the setup screen remains visible
+- **THEN** the enable-notifications prompt fades out from the bottom end of the setup screen
 
 ### Requirement: Notification settings entry point
 The disabled notification prompt SHALL open Android notification settings for EasyNap when clicked so the user can enable app or alarm-channel notifications.
@@ -153,3 +159,31 @@ The setup screen SHALL refresh effective alarm notification availability when it
 #### Scenario: Prompt appears after disabling notifications
 - **WHEN** notifications are disabled while the app is backgrounded and the user returns to the idle setup screen
 - **THEN** the setup screen refreshes notification state and shows the prompt
+
+### Requirement: External keyboard custom duration input
+The custom duration bottom sheet SHALL accept supported external keyboard input and apply the same buffer, parsing, validation, and start behavior used by the on-screen keypad and "Start nap" button.
+
+#### Scenario: Hardware digits enter custom duration
+- **WHEN** the custom duration sheet is open and the user presses hardware digit keys `1`, `2`, and `5`
+- **THEN** the custom input contains `125`
+
+#### Scenario: Hardware colon enters separator
+- **WHEN** the custom duration sheet is open and the user presses hardware keys `1`, `2`, `:`, `3`, and `0`
+- **THEN** the custom input contains `12:30`
+
+#### Scenario: Hardware dot enters separator
+- **WHEN** the custom duration sheet is open and the user presses hardware keys `1`, `2`, `.`, `3`, and `0`
+- **THEN** the custom input contains `12:30`
+
+#### Scenario: Hardware Enter starts valid duration
+- **WHEN** the custom duration sheet is open, the custom input contains `12:30`, and the user presses hardware Enter
+- **THEN** a 12-minute 30-second countdown starts and the app shows the running-timer screen
+
+#### Scenario: Hardware Enter does not start invalid duration
+- **WHEN** the custom duration sheet is open, the custom input is empty, incomplete, shorter than 5 seconds, or longer than 120 minutes, and the user presses hardware Enter
+- **THEN** no countdown starts and the custom duration sheet remains open with existing validation feedback
+
+#### Scenario: Unsupported hardware keys are ignored
+- **WHEN** the custom duration sheet is open and the user presses a hardware key other than a digit, dot, colon, backspace, delete, or Enter
+- **THEN** the custom input is unchanged
+

@@ -123,12 +123,10 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            snooze(1f)
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = when (keyCode) {
+        KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> { snooze(1f); true }
+        KeyEvent.KEYCODE_ESCAPE -> { stopAlarmService(); true }
+        else -> super.onKeyDown(keyCode, event)
     }
 
     override fun onDestroy() {

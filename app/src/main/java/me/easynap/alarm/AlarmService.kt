@@ -27,6 +27,7 @@ class AlarmService : Service() {
     companion object {
         const val NOTIF_ID_ALARM = 2
         const val ACTION_STOP = "me.easynap.ACTION_STOP_ALARM"
+        @Volatile var isRunning: Boolean = false
 
         // Alarm sequence timeline:
         // 0 s        vibration starts, no sound
@@ -51,6 +52,7 @@ class AlarmService : Service() {
     private var fadeStep = 0
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        isRunning = true
         if (intent?.action == ACTION_STOP) {
             stopAlarm()
             return START_NOT_STICKY
@@ -100,6 +102,7 @@ class AlarmService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         handler.removeCallbacksAndMessages(null)
         mediaPlayer?.stop()
         mediaPlayer?.release()

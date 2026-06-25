@@ -1,5 +1,10 @@
 package me.easynap.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,6 +25,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,14 +40,24 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -140,13 +156,25 @@ internal fun EnableNotificationsPrompt(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (!alarmNotificationsAvailable) {
+    val isPromptVisible = !alarmNotificationsAvailable
+    var initialised by remember { mutableStateOf(false) }
+
+    AnimatedVisibility(
+        visible = isPromptVisible,
+        enter = if (initialised) fadeIn() else EnterTransition.None,
+        exit = if (initialised) fadeOut() else ExitTransition.None,
+        modifier = modifier
+    ) {
         Text(
             text = stringResource(R.string.enable_notifications_prompt),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
-            modifier = modifier.clickable(onClick = onClick)
+            modifier = Modifier.clickable(onClick = onClick)
         )
+    }
+
+    LaunchedEffect(Unit) {
+        initialised = true
     }
 }
 
@@ -249,6 +277,22 @@ internal fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
+private fun mapCustomDurationKey(key: Key): String? = when (key) {
+    Key.Zero, Key.NumPad0 -> "0"
+    Key.One, Key.NumPad1 -> "1"
+    Key.Two, Key.NumPad2 -> "2"
+    Key.Three, Key.NumPad3 -> "3"
+    Key.Four, Key.NumPad4 -> "4"
+    Key.Five, Key.NumPad5 -> "5"
+    Key.Six, Key.NumPad6 -> "6"
+    Key.Seven, Key.NumPad7 -> "7"
+    Key.Eight, Key.NumPad8 -> "8"
+    Key.Nine, Key.NumPad9 -> "9"
+    Key.Semicolon, Key.Period, Key.NumPadDot -> ":"
+    Key.Backspace, Key.Delete -> "⌫"
+    else -> null
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) {
@@ -277,22 +321,70 @@ internal fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) 
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)
     ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            CustomDurationSheetContent(
-                inputBuffer = inputBuffer,
-                cursorAlpha = cursorAlpha,
-                parsedSeconds = parsedSeconds,
-                isOutOfRange = isOutOfRange,
-                isStartEnabled = isStartEnabled,
-                title = stringResource(R.string.custom_duration_title),
-                errorText = stringResource(R.string.custom_duration_error),
-                startText = stringResource(R.string.custom_duration_start),
-                compactLandscape = maxWidth > maxHeight && maxHeight < 600.dp,
-                onKey = { key -> inputBuffer = appendToBuffer(inputBuffer, key) },
-                onStart = onStart
-            )
-        }
+        CustomDurationSheetBody(
+            inputBuffer = inputBuffer,
+            parsedSeconds = parsedSeconds,
+            isOutOfRange = isOutOfRange,
+            isStartEnabled = isStartEnabled,
+            cursorAlpha = cursorAlpha,
+            onBufferChange = { inputBuffer = it },
+            onStart = onStart,
+            onDismiss = onDismiss
+        )
     }
+}
+
+@Composable
+internal fun CustomDurationSheetBody(
+    inputBuffer: String,
+    parsedSeconds: Int?,
+    isOutOfRange: Boolean,
+    isStartEnabled: Boolean,
+    cursorAlpha: Float,
+    onBufferChange: (String) -> Unit,
+    onStart: (Int) -> Unit,
+    onDismiss: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val focusRequester = remember { FocusRequester() }
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("CustomDurationSheetBody")
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.key) {
+                    Key.Escape -> { onDismiss(); true }
+                    Key.Enter, Key.NumPadEnter -> {
+                        if (isStartEnabled && parsedSeconds != null) {
+                            onStart(parsedSeconds); true
+                        } else false
+                    }
+                    else -> {
+                        val action = mapCustomDurationKey(event.key)
+                        if (action != null) { onBufferChange(appendToBuffer(inputBuffer, action)); true }
+                        else false
+                    }
+                }
+            }
+    ) {
+        CustomDurationSheetContent(
+            inputBuffer = inputBuffer,
+            cursorAlpha = cursorAlpha,
+            parsedSeconds = parsedSeconds,
+            isOutOfRange = isOutOfRange,
+            isStartEnabled = isStartEnabled,
+            title = stringResource(R.string.custom_duration_title),
+            errorText = stringResource(R.string.custom_duration_error),
+            startText = stringResource(R.string.custom_duration_start),
+            compactLandscape = maxWidth > maxHeight && maxHeight < 600.dp,
+            onKey = { key -> onBufferChange(appendToBuffer(inputBuffer, key)) },
+            onStart = onStart
+        )
+    }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 @Composable
