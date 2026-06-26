@@ -52,11 +52,11 @@ class AlarmService : Service() {
     private var fadeStep = 0
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        isRunning = true
         if (intent?.action == ACTION_STOP) {
             stopAlarm()
             return START_NOT_STICKY
         }
+        isRunning = true
 
         EasyNapNotifications.ensureChannels(this)
         acquireWakeLock()
@@ -115,6 +115,7 @@ class AlarmService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun stopAlarm() {
+        isRunning = false
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         sendBroadcast(Intent(AlarmActivity.ACTION_FINISH).setPackage(packageName))
@@ -137,21 +138,32 @@ class AlarmService : Service() {
     }
 
     private fun startAudioFadeIn() {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val candidates = listOfNotNull(
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
+        )
 
-        mediaPlayer = MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            setDataSource(this@AlarmService, uri)
-            isLooping = true
-            prepare()
-            setVolume(0f, 0f)
-            start()
+        val attrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        for (uri in candidates) {
+            try {
+                mediaPlayer = MediaPlayer().apply {
+                    setAudioAttributes(attrs)
+                    setDataSource(this@AlarmService, uri)
+                    isLooping = true
+                    prepare()
+                    setVolume(0f, 0f)
+                    start()
+                }
+                break
+            } catch (_: Exception) {
+                mediaPlayer?.release()
+                mediaPlayer = null
+            }
         }
 
         fadeStep = 0

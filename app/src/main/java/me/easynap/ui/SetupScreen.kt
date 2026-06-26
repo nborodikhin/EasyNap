@@ -184,7 +184,7 @@ internal fun DurationGrid(
     onDurationSelected: (Float) -> Unit,
     onCustom: () -> Unit
 ) {
-    val rows = (durations.map { it } + listOf(Float.NEGATIVE_INFINITY)).chunked(3)
+    val rows = (durations.take(5) + listOf(Float.NEGATIVE_INFINITY)).chunked(3)
     Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
         rows.forEach { row ->
             Row(

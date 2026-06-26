@@ -57,6 +57,19 @@ class TimerPreferenceStoreTest {
     }
 
     @Test
+    fun `seed durations are preserved after first use`() = runTest {
+        val store = newStore("seed-preserved")
+
+        store.startTimer(endAtMillis = 5_000L, durationMinutes = 20f, updateHistory = true)
+
+        val history = store.history.first()
+        assertTrue(20f in history)
+        assertTrue(5f in history)
+        assertTrue(10f in history)
+        assertTrue(30f in history)
+    }
+
+    @Test
     fun `history dedupes moves selected duration to front and caps at six`() = runTest {
         val store = newStore("history-rules")
 
@@ -76,7 +89,6 @@ class TimerPreferenceStoreTest {
         val migratedRawHistory = "25,10,5"
 
         assertEquals(listOf(25f, 10f, 5f), TimerPreferenceStore.parseHistory(migratedRawHistory))
-        assertTrue(TimerPreferenceStore.withSeedDurations(listOf(25f, 10f, 5f)).containsAll(listOf(25f, 10f, 5f)))
     }
 
     @Test(expected = CancellationException::class)

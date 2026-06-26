@@ -36,11 +36,8 @@ class TimerPreferenceStore @Inject constructor(
     }
 
     override val history: Flow<List<Float>> = dataStore.safeData.map { preferences ->
-        withSeedDurations(preferences.parseStoredHistory())
-    }
-
-    val recentHistory: Flow<List<Float>> = dataStore.safeData.map { preferences ->
-        preferences.parseStoredHistory().take(3)
+        val raw = preferences[KEY_HISTORY]
+        if (raw == null) DEFAULT_HISTORY else parseHistory(raw)
     }
 
     override suspend fun loadActiveTimer(nowMillis: Long): PersistedTimer? {
@@ -84,10 +81,6 @@ class TimerPreferenceStore @Inject constructor(
                 ?: emptyList()
         }
 
-        fun withSeedDurations(stored: List<Float>): List<Float> {
-            return (stored + DEFAULT_HISTORY.filter { it !in stored }).take(6)
-        }
-
         fun updatedHistory(current: List<Float>, minutes: Float): List<Float> {
             return current
                 .filterNot { it == minutes }
@@ -105,7 +98,8 @@ class TimerPreferenceStore @Inject constructor(
         }
 
         private fun Preferences.parseStoredHistory(): List<Float> {
-            return parseHistory(this[KEY_HISTORY])
+            val raw = this[KEY_HISTORY] ?: return DEFAULT_HISTORY
+            return parseHistory(raw)
         }
     }
 }

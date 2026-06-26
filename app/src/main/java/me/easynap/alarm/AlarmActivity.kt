@@ -70,9 +70,14 @@ class AlarmActivity : ComponentActivity() {
             finish()
         }
     }
+    private var receiverRegistered = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!AlarmService.isRunning) {
+            finish()
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -91,6 +96,7 @@ class AlarmActivity : ComponentActivity() {
             IntentFilter(ACTION_FINISH),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
+        receiverRegistered = true
 
         enableEdgeToEdge()
 
@@ -130,7 +136,7 @@ class AlarmActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        unregisterReceiver(finishReceiver)
+        if (receiverRegistered) unregisterReceiver(finishReceiver)
         super.onDestroy()
     }
 
