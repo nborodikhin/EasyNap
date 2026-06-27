@@ -25,14 +25,22 @@ class FakeTimerStore(
 
     override suspend fun getNapDurationMinutes(): Float = _napDurationMinutes.value
 
-    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateHistory: Boolean) {
+    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float) {
         activeTimer = PersistedTimer(endAtMillis, durationMinutes)
-        if (updateHistory) {
-            _napDurationMinutes.value = durationMinutes
-        }
+        _napDurationMinutes.value = durationMinutes
     }
 
     override suspend fun clearActiveTimer() {
         activeTimer = null
+    }
+
+    override suspend fun addToHistory(minutes: Float, position: Int) {
+        val current = _history.value.filterNot { it == minutes }
+        val clamped = minOf(position, current.size)
+        _history.value = (current.subList(0, clamped) + minutes + current.subList(clamped, current.size)).take(5)
+    }
+
+    override suspend fun removeFromHistory(minutes: Float) {
+        _history.value = _history.value.filterNot { it == minutes }
     }
 }

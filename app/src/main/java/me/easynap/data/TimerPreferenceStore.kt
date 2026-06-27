@@ -48,14 +48,27 @@ class TimerPreferenceStore @Inject constructor(
         return napDurationMinutes.first()
     }
 
-    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateHistory: Boolean) {
+    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float) {
         dataStore.edit { preferences ->
             preferences[KEY_END_AT] = endAtMillis
-            if (updateHistory) {
-                preferences[KEY_DURATION] = durationMinutes
-                preferences[KEY_HISTORY] = updatedHistory(preferences.parseStoredHistory(), durationMinutes)
-                    .joinToString(",")
-            }
+            preferences[KEY_DURATION] = durationMinutes
+        }
+    }
+
+    override suspend fun addToHistory(minutes: Float, position: Int) {
+        dataStore.edit { preferences ->
+            val current = preferences.parseStoredHistory().filterNot { it == minutes }
+            val clamped = minOf(position, current.size)
+            val updated = (current.subList(0, clamped) + minutes + current.subList(clamped, current.size)).take(5)
+            preferences[KEY_HISTORY] = updated.joinToString(",")
+        }
+    }
+
+    override suspend fun removeFromHistory(minutes: Float) {
+        dataStore.edit { preferences ->
+            val current = preferences.parseStoredHistory()
+            if (minutes !in current) return@edit
+            preferences[KEY_HISTORY] = current.filterNot { it == minutes }.joinToString(",")
         }
     }
 
@@ -79,13 +92,6 @@ class TimerPreferenceStore @Inject constructor(
                 ?.split(",")
                 ?.mapNotNull { it.trim().toFloatOrNull() }
                 ?: emptyList()
-        }
-
-        fun updatedHistory(current: List<Float>, minutes: Float): List<Float> {
-            return current
-                .filterNot { it == minutes }
-                .let { listOf(minutes) + it }
-                .take(6)
         }
 
         private fun Preferences.toActiveTimer(nowMillis: Long): PersistedTimer? {

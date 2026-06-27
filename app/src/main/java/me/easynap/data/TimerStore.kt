@@ -12,6 +12,8 @@ interface TimerStore {
     val napDurationMinutes: Flow<Float>
     suspend fun loadActiveTimer(nowMillis: Long = System.currentTimeMillis()): PersistedTimer?
     suspend fun getNapDurationMinutes(): Float
-    suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateHistory: Boolean)
+    suspend fun startTimer(endAtMillis: Long, durationMinutes: Float)
     suspend fun clearActiveTimer()
+    suspend fun addToHistory(minutes: Float, position: Int)
+    suspend fun removeFromHistory(minutes: Float)
 }

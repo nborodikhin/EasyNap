@@ -11,6 +11,12 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,6 +29,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -37,6 +45,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -44,14 +56,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -79,6 +95,11 @@ import me.easynap.timer.isCustomDurationInRange
 import me.easynap.timer.parseCustomDurationSeconds
 import me.easynap.data.TimerPreferenceStore
 
+sealed interface DurationGridMode {
+    data object Normal : DurationGridMode
+    data class PendingDelete(val minutes: Float) : DurationGridMode
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupScreen(
@@ -88,13 +109,41 @@ fun SetupScreen(
 ) {
     var showCustomSheet by rememberSaveable { mutableStateOf(false) }
     val history by timerController.history.collectAsStateWithLifecycle()
+    var pendingUndoMinutes by rememberSaveable { mutableStateOf<Float?>(null) }
+    var gridMode by remember { mutableStateOf<DurationGridMode>(DurationGridMode.Normal) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold { padding ->
+    LaunchedEffect(pendingUndoMinutes) {
+        val minutes = pendingUndoMinutes ?: return@LaunchedEffect
+        val label = formatDurationLabel(minutes) + " " + formatDurationUnit(minutes)
+        val result = snackbarHostState.showSnackbar(
+            message = "$label timer deleted",
+            actionLabel = "Undo",
+            duration = SnackbarDuration.Short
+        )
+        when (result) {
+            SnackbarResult.ActionPerformed -> {
+                timerController.undo()
+                pendingUndoMinutes = null
+            }
+            SnackbarResult.Dismissed -> pendingUndoMinutes = null
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .consumeWindowInsets(padding)
+                .clickable(
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null
+                ) {
+                    if (gridMode is DurationGridMode.PendingDelete) gridMode = DurationGridMode.Normal
+                }
         ) {
             Column(
                 modifier = Modifier
@@ -123,8 +172,17 @@ fun SetupScreen(
                 Spacer(Modifier.height(42.dp))
                 DurationGrid(
                     durations = history,
-                    onDurationSelected = { timerController.start(it) },
-                    onCustom = { showCustomSheet = true }
+                    mode = gridMode,
+                    onModeChange = { gridMode = it },
+                    onDurationSelected = { minutes ->
+                        timerController.addTimer(minutes, 0)
+                        timerController.start(minutes)
+                    },
+                    onCustom = { showCustomSheet = true },
+                    onDurationDeleted = { minutes ->
+                        timerController.removeFromHistory(minutes)
+                        pendingUndoMinutes = minutes
+                    }
                 )
                 Spacer(Modifier.height(28.dp))
             }
@@ -144,7 +202,9 @@ fun SetupScreen(
             onDismiss = { showCustomSheet = false },
             onStart = { seconds ->
                 showCustomSheet = false
-                timerController.start(seconds / 60f)
+                val minutes = seconds / 60f
+                timerController.addTimer(minutes, 0)
+                timerController.start(minutes)
             }
         )
     }
@@ -178,14 +238,26 @@ internal fun EnableNotificationsPrompt(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun DurationGrid(
     durations: List<Float>,
     onDurationSelected: (Float) -> Unit,
-    onCustom: () -> Unit
+    onCustom: () -> Unit,
+    onDurationDeleted: (Float) -> Unit = {},
+    mode: DurationGridMode = DurationGridMode.Normal,
+    onModeChange: (DurationGridMode) -> Unit = {}
 ) {
     val rows = (durations.take(5) + listOf(Float.NEGATIVE_INFINITY)).chunked(3)
-    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(9.dp),
+        modifier = Modifier.clickable(
+            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+            indication = null
+        ) {
+            if (mode is DurationGridMode.PendingDelete) onModeChange(DurationGridMode.Normal)
+        }
+    ) {
         rows.forEach { row ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(9.dp),
@@ -193,12 +265,46 @@ internal fun DurationGrid(
             ) {
                 row.forEach { item ->
                     if (item == Float.NEGATIVE_INFINITY) {
-                        CustomTile(onClick = onCustom, modifier = Modifier.weight(1f))
+                        val dimmed = mode is DurationGridMode.PendingDelete
+                        CustomTile(
+                            onClick = {
+                                if (mode is DurationGridMode.PendingDelete) onModeChange(DurationGridMode.Normal)
+                                else onCustom()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .alpha(if (dimmed) 0.38f else 1f)
+                        )
                     } else {
+                        val isPendingDelete = mode is DurationGridMode.PendingDelete &&
+                                (mode as DurationGridMode.PendingDelete).minutes == item
+                        val isDimmed = mode is DurationGridMode.PendingDelete && !isPendingDelete
                         DurationTile(
                             minutes = item,
-                            onClick = { onDurationSelected(item) },
-                            modifier = Modifier.weight(1f)
+                            isPendingDelete = isPendingDelete,
+                            onClick = {
+                                when {
+                                    isPendingDelete -> {
+                                        // do nothing
+                                    }
+                                    mode is DurationGridMode.PendingDelete -> onModeChange(DurationGridMode.Normal)
+                                    else -> onDurationSelected(item)
+                                }
+                            },
+                            onLongClick = if (mode is DurationGridMode.Normal) {
+                                { onModeChange(DurationGridMode.PendingDelete(item)) }
+                            } else {
+                                null
+                            },
+                            onIconClick = {
+                                if (mode is DurationGridMode.PendingDelete) {
+                                    onModeChange(DurationGridMode.Normal)
+                                    onDurationDeleted(item)
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .alpha(if (isDimmed) 0.38f else 1f)
                         )
                     }
                 }
@@ -208,39 +314,94 @@ internal fun DurationGrid(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-internal fun DurationTile(minutes: Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DurationTile(
+    minutes: Float,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isPendingDelete: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onIconClick: (() -> Unit)? = null
+) {
     val isWhole = minutes % 1f == 0f
-    Card(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 72.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-    ) {
-        Column(
+    val errorColor = MaterialTheme.colorScheme.error
+    val errorBorderColor = errorColor.copy(alpha = 0.7f)
+    val errorBgColor = errorColor.copy(alpha = 0.08f)
+
+    Box(modifier = modifier) {
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 18.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = formatDurationLabel(minutes),
-                style = TextStyle(
-                    fontSize = if (isWhole) 28.sp else 22.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFeatureSettings = "tnum"
+                .heightIn(min = 72.dp)
+                .then(
+                    if (isPendingDelete) Modifier.border(2.dp, errorBorderColor, MaterialTheme.shapes.extraLarge)
+                    else Modifier
+                )
+                .clip(MaterialTheme.shapes.extraLarge)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
                 ),
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = if (isPendingDelete)
+                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 1f).let {
+                        // blend error tint
+                        Color(
+                            red = it.red * 0.92f + errorBgColor.red * 0.08f,
+                            green = it.green * 0.92f + errorBgColor.green * 0.08f,
+                            blue = it.blue * 0.92f + errorBgColor.blue * 0.08f,
+                            alpha = 1f
+                        )
+                    }
+                else MaterialTheme.colorScheme.surfaceContainerHigh
             )
-            Text(
-                text = formatDurationUnit(minutes),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 18.dp, horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = formatDurationLabel(minutes),
+                    style = TextStyle(
+                        fontSize = if (isWhole) 28.sp else 22.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFeatureSettings = "tnum"
+                    ),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = formatDurationUnit(minutes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        if (isPendingDelete) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(48.dp)
+                    .offset(x = 21.dp, y = (-21).dp)
+                    .clickable(onClick = onIconClick ?: {})
+                    .padding(13.dp)
+                    .background(errorColor, CircleShape)
+                    .testTag("delete-badge"),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
     }
 }
@@ -654,6 +815,12 @@ private fun DurationGridPreview() {
 @Composable
 private fun DurationTileWholePreview() {
     EasyNapTheme { DurationTile(minutes = 10f, onClick = {}) }
+}
+
+@Preview(showBackground = true, name = "DurationTile - pending delete")
+@Composable
+private fun DurationTilePendingDeletePreview() {
+    EasyNapTheme { DurationTile(minutes = 10f, onClick = {}, isPendingDelete = true) }
 }
 
 @Preview(showBackground = true, name = "DurationTile - fractional")
