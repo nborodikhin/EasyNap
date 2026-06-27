@@ -7,6 +7,9 @@
    id="svg-feature-graphic"
    sodipodi:docname="feature-graphic.svg"
    inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   inkscape:export-filename="feature-graphic.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -24,14 +27,30 @@
      inkscape:document-units="px"
      showgrid="false"
      inkscape:zoom="0.815"
-     inkscape:cx="346.01227"
+     inkscape:cx="347.23926"
      inkscape:cy="249.69325"
      inkscape:window-width="1920"
      inkscape:window-height="1024"
      inkscape:window-x="0"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer-title" />
+     inkscape:current-layer="svg-feature-graphic"
+     showguides="true">
+    <sodipodi:guide
+       position="68,412.99895"
+       orientation="-1,0"
+       id="guide1"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="956,520.45528"
+       orientation="-1,0"
+       id="guide2"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+  </sodipodi:namedview>
   <defs
      id="defs-feature-graphic">
     <linearGradient
@@ -83,34 +102,35 @@
      id="layer-title"
      inkscape:groupmode="layer"
      inkscape:label="Title">
-    <g
-       id="g6"
-       transform="translate(-26)">
-      <text
-         id="title"
-         x="64"
-         y="177"
-         fill="#f4fffc"
-         font-family="Inter, Roboto, Arial, sans-serif"
-         font-size="58px"
-         font-weight="800"
-         letter-spacing="-0.5"><tspan
-           x="64"
-           y="174"
-           id="tspan3">Just nap,</tspan><tspan
-           x="64"
-           y="242"
-           id="tspan4">nothing more</tspan></text>
-      <rect
-         id="title-underline"
-         x="66"
-         y="276"
-         width="238"
-         height="8"
-         rx="4"
-         fill="#7ff7e9"
-         opacity="0.95" />
-    </g>
+    <text
+       id="title"
+       x="64.184082"
+       y="177"
+       fill="#f4fffc"
+       font-family="Inter, Roboto, Arial, sans-serif"
+       font-size="58px"
+       font-weight="800"
+       letter-spacing="-0.5"
+       style="font-style:normal;font-variant:normal;font-weight:800;font-stretch:normal;font-size:58px;font-family:Inter, Roboto, Arial, sans-serif;-inkscape-font-specification:'Inter, Roboto, Arial, sans-serif, Ultra-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;letter-spacing:-0.5;text-anchor:start;fill:#f4fffc"
+       transform="translate(8)"><tspan
+         sodipodi:role="line"
+         id="tspan7"
+         x="234.58447"
+         y="177">Your nap</tspan><tspan
+         sodipodi:role="line"
+         id="tspan8"
+         x="234.33447"
+         y="249.5">a click away</tspan></text>
+    <rect
+       id="title-underline"
+       x="66"
+       y="276"
+       width="238"
+       height="8"
+       rx="4"
+       fill="#7ff7e9"
+       opacity="0.95"
+       transform="translate(8)" />
   </g>
   <g
      id="layer-phones"
