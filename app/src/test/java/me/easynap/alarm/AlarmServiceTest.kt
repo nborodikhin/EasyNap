@@ -95,6 +95,17 @@ class AlarmServiceTest {
     }
 
     @Test
+    fun `alarm starts and stays running when no system alarm sound is available`() {
+        // Robolectric has no real RingtoneManager or raw resource support, so both
+        // the system URI path and the R.raw.helium path will fail — this verifies
+        // the service survives both failures and remains running (vibration-only mode).
+        val controller = Robolectric.buildService(AlarmService::class.java, Intent()).create()
+        controller.startCommand(0, 1)
+        assertTrue("Service should still be running even when audio setup fails", AlarmService.isRunning)
+        controller.destroy()
+    }
+
+    @Test
     fun `ACTION_SNOOZE stops the alarm and starts a one-minute countdown`() {
         val controller = Robolectric.buildService(AlarmService::class.java, Intent()).create()
         val service = controller.get()

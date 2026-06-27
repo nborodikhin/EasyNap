@@ -179,28 +179,34 @@ class AlarmService : Service() {
     }
 
     private fun startAudioFadeIn() {
-        val candidates = listOfNotNull(
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
-        )
-
         val attrs = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
 
-        for (uri in candidates) {
+        try {
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(attrs)
+                setDataSource(this@AlarmService, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                isLooping = true
+                prepare()
+                setVolume(0f, 0f)
+                start()
+            }
+        } catch (_: Exception) {
+            mediaPlayer?.release()
+            mediaPlayer = null
             try {
+                val afd = resources.openRawResourceFd(R.raw.helium)
                 mediaPlayer = MediaPlayer().apply {
                     setAudioAttributes(attrs)
-                    setDataSource(this@AlarmService, uri)
+                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                    afd.close()
                     isLooping = true
                     prepare()
                     setVolume(0f, 0f)
                     start()
                 }
-                break
             } catch (_: Exception) {
                 mediaPlayer?.release()
                 mediaPlayer = null
