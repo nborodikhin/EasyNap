@@ -81,6 +81,7 @@ fun formatDurationLabel(minutes: Float): String =
         "%d:%02d".format(totalSeconds / 60, totalSeconds % 60)
     }
 
+
 fun formatDurationUnit(minutes: Float): String =
     if (minutes % 1f == 0f) "min" else "min:sec"
 

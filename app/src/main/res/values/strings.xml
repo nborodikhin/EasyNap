@@ -10,8 +10,13 @@
     <string name="custom_duration_error">Enter 0:05 – 120 min</string>
     <string name="countdown_caption_snoozed">%1$s (snoozed)</string>
     <string name="notif_app_name">EasyNap</string>
+    <string name="notif_duration_min">%1$d min</string>
+    <string name="notif_timer_title">%1$s nap is active</string>
+    <string name="notif_alarm_title">%1$s nap is over</string>
     <string name="notif_timer_remaining">Remaining: %1$s</string>
     <string name="notif_alarm_text">Time to wake up!</string>
+    <string name="notif_action_stop">Stop</string>
+    <string name="notif_action_snooze">Snooze</string>
     <string name="notification_channel_timer">Timer</string>
     <string name="notification_channel_alarm">Alarm</string>
     <string name="enable_notifications_prompt">Enable notifications</string>

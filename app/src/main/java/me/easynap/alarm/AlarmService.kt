@@ -17,9 +17,12 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import me.easynap.R
 import me.easynap.notifications.EasyNapNotifications
 import me.easynap.service.NapTimerService
+import me.easynap.timer.TimerController
+import me.easynap.timer.formatDurationLabel
 
 @AndroidEntryPoint
 class AlarmService : Service() {
@@ -27,6 +30,7 @@ class AlarmService : Service() {
     companion object {
         const val NOTIF_ID_ALARM = 2
         const val ACTION_STOP = "me.easynap.ACTION_STOP_ALARM"
+        const val ACTION_SNOOZE = "me.easynap.ACTION_SNOOZE_ALARM"
         @Volatile var isRunning: Boolean = false
 
         // Alarm sequence timeline:
@@ -42,7 +46,13 @@ class AlarmService : Service() {
         private const val FADE_OUT_MS = 10_000L
         private const val TOTAL_TIMEOUT_MS = FADE_OUT_START_MS + FADE_OUT_MS               // 55 s
         private const val FADE_STEP_MS = 100L
+
+        private const val REQUEST_FULL_SCREEN = 0
+        private const val REQUEST_SNOOZE = 1
+        private const val REQUEST_STOP = 2
     }
+
+    @Inject internal lateinit var timerController: TimerController
 
     private var wakeLock: PowerManager.WakeLock? = null
     private var vibrator: Vibrator? = null
@@ -52,9 +62,16 @@ class AlarmService : Service() {
     private var fadeStep = 0
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopAlarm()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopAlarm()
+                return START_NOT_STICKY
+            }
+            ACTION_SNOOZE -> {
+                stopAlarm()
+                timerController.startSnooze(1f)
+                return START_NOT_STICKY
+            }
         }
         isRunning = true
 
@@ -65,14 +82,36 @@ class AlarmService : Service() {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         val fullScreenPi = PendingIntent.getActivity(
-            this, 0, alarmActivityIntent,
+            this, REQUEST_FULL_SCREEN, alarmActivityIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val snoozeIntent = PendingIntent.getForegroundService(
+            this, REQUEST_SNOOZE,
+            Intent(this, AlarmService::class.java).apply { action = ACTION_SNOOZE },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val stopIntent = PendingIntent.getForegroundService(
+            this, REQUEST_STOP,
+            Intent(this, AlarmService::class.java).apply { action = ACTION_STOP },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val durationMinutes = timerController.napDurationMinutes.value
+        val title = if (durationMinutes > 0f) {
+            val prefix = if (durationMinutes % 1f == 0f) {
+                getString(R.string.notif_duration_min, durationMinutes.toInt())
+            } else {
+                formatDurationLabel(durationMinutes)
+            }
+            getString(R.string.notif_alarm_title, prefix)
+        } else {
+            getString(R.string.notif_app_name)
+        }
 
         startForeground(
             NOTIF_ID_ALARM,
             NotificationCompat.Builder(this, NapTimerService.CHANNEL_ALARM)
-                .setContentTitle(getString(R.string.notif_app_name))
+                .setContentTitle(title)
                 .setContentText(getString(R.string.notif_alarm_text))
                 .setSmallIcon(R.drawable.ic_notification)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -80,6 +119,8 @@ class AlarmService : Service() {
                 .setFullScreenIntent(fullScreenPi, true)
                 .setOngoing(true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .addAction(R.drawable.ic_snooze_24dp, getString(R.string.notif_action_snooze), snoozeIntent)
+                .addAction(R.drawable.ic_alarm_off_24, getString(R.string.notif_action_stop), stopIntent)
                 .build()
         )
 

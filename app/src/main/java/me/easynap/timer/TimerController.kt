@@ -96,7 +96,7 @@ class TimerController @Inject constructor(
         val pad = if (durationMinutes >= 1f) PAD_MS_LONG else PAD_MS_SHORT
         val endAt = System.currentTimeMillis() + durationMs + pad
         scope.launch {
-            store.startTimer(endAt, durationMinutes)
+            store.startTimer(endAt, durationMinutes, updateNapDuration = !isSnooze)
             _state.value = TimerState.Running(endAt, durationMinutes, isSnooze = isSnooze)
             startCountdownService()
             scheduleAlarm(endAt)

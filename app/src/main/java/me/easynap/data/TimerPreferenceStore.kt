@@ -48,10 +48,10 @@ class TimerPreferenceStore @Inject constructor(
         return napDurationMinutes.first()
     }
 
-    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float) {
+    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateNapDuration: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_END_AT] = endAtMillis
-            preferences[KEY_DURATION] = durationMinutes
+            if (updateNapDuration) preferences[KEY_DURATION] = durationMinutes
         }
     }
 

@@ -25,9 +25,9 @@ class FakeTimerStore(
 
     override suspend fun getNapDurationMinutes(): Float = _napDurationMinutes.value
 
-    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float) {
+    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateNapDuration: Boolean) {
         activeTimer = PersistedTimer(endAtMillis, durationMinutes)
-        _napDurationMinutes.value = durationMinutes
+        if (updateNapDuration) _napDurationMinutes.value = durationMinutes
     }
 
     override suspend fun clearActiveTimer() {

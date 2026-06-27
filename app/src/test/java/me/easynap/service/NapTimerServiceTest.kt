@@ -1,7 +1,9 @@
 package me.easynap.service
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import dagger.hilt.android.testing.BindValue
@@ -13,6 +15,9 @@ import me.easynap.AppModule
 import me.easynap.data.PersistedTimer
 import me.easynap.data.TimerStore
 import me.easynap.timer.FakeTimerStore
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -64,5 +69,64 @@ class NapTimerServiceTest {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         assertTrue("Expected no notifications when no active timer",
             shadowOf(nm).allNotifications.isEmpty())
+    }
+
+    @Test
+    fun `notification title shows whole-minute duration as N min nap is active`() {
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 20 * 60_000L, 20f)
+
+        val service = Robolectric.buildService(NapTimerService::class.java).create().get()
+        service.onStartCommand(null, 0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val title = shadowOf(nm).allNotifications.firstOrNull()
+            ?.extras?.getString(Notification.EXTRA_TITLE)
+        assertEquals("20 min nap is active", title)
+    }
+
+    @Test
+    fun `notification title shows fractional duration as m colon ss nap is active`() {
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 90_000L, 1.5f)
+
+        val service = Robolectric.buildService(NapTimerService::class.java).create().get()
+        service.onStartCommand(null, 0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val title = shadowOf(nm).allNotifications.firstOrNull()
+            ?.extras?.getString(Notification.EXTRA_TITLE)
+        assertEquals("1:30 nap is active", title)
+    }
+
+    @Test
+    fun `notification has a single Stop action`() {
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 10f)
+
+        val service = Robolectric.buildService(NapTimerService::class.java).create().get()
+        service.onStartCommand(null, 0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val actions = shadowOf(nm).allNotifications.firstOrNull()?.actions
+        assertEquals(1, actions?.size)
+        assertEquals("Stop", actions?.get(0)?.title?.toString())
+    }
+
+    @Test
+    fun `ACTION_STOP clears the active timer`() {
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 10f)
+
+        val service = Robolectric.buildService(NapTimerService::class.java).create().get()
+        service.onStartCommand(null, 0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        service.onStartCommand(Intent(NapTimerService.ACTION_STOP), 0, 2)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertNull("Active timer should be cleared after Stop action", fakeStore.activeTimer)
     }
 }
