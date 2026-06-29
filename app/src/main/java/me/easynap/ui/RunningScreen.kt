@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -26,8 +26,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,9 +43,16 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +63,8 @@ import me.easynap.theme.EasyNapTheme
 import me.easynap.timer.TimerController
 import me.easynap.timer.TimerState
 import me.easynap.timer.anticipatedProgressMs
-import me.easynap.timer.formatDurationCaption
+import me.easynap.timer.durationTotalSeconds
+import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.formatRemainingTimeRoundUp
 
 @Composable
@@ -82,7 +92,8 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
 
     val displayMs = remainingMs.coerceIn(0L, totalMs)
     val originalDurationMinutes by timerController.napDurationMinutes.collectAsStateWithLifecycle()
-    val captionBase = formatDurationCaption(if (state.isSnooze) originalDurationMinutes else state.durationMinutes)
+    val durationMinutes = if (state.isSnooze) originalDurationMinutes else state.durationMinutes
+    val captionBase = napCaption(durationMinutes)
     val caption = if (state.isSnooze) stringResource(R.string.countdown_caption_snoozed, captionBase) else captionBase
 
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
@@ -116,6 +127,17 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
         }
     }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+}
+
+@Composable
+private fun napCaption(durationMinutes: Float): String {
+    val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+    return if (wholeMinutes != null) {
+        pluralStringResource(R.plurals.nap_caption_minutes, wholeMinutes, wholeMinutes)
+    } else {
+        val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
+        pluralStringResource(R.plurals.nap_caption_seconds, seconds, seconds)
+    }
 }
 
 @Composable
@@ -156,7 +178,7 @@ private fun RunningScreenContent(
         Box(modifier = modifier.fillMaxSize()) {
             Text(
                 text = caption,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.headlineMedium.copy(textDirection = TextDirection.Ltr),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
@@ -196,7 +218,7 @@ private fun CountdownCluster(
     ) {
         Text(
             text = caption,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         CountdownRing(
@@ -218,7 +240,19 @@ private fun CountdownRing(
     timeFontSize: TextUnit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    // Throttle semantics to once per minute so TalkBack doesn't re-announce every tick.
+    // refreshTick is incremented on double-tap to force a re-read of the current time.
+    var refreshTick by remember { mutableIntStateOf(0) }
+    val semanticDesc = remember(remainingLabel, refreshTick) {
+        "$remainingText ${remainingLabel.lowercase()}"
+    }
+    Box(
+        modifier = modifier.clearAndSetSemantics {
+            stateDescription = semanticDesc
+            onClick { refreshTick++; true }
+        },
+        contentAlignment = Alignment.Center
+    ) {
         CircularProgressIndicator(
             progress = { fraction },
             modifier = Modifier.size(ringSize),
@@ -227,20 +261,23 @@ private fun CountdownRing(
             strokeWidth = 10.dp,
             strokeCap = StrokeCap.Round,
         )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = remainingText,
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = timeFontSize,
-                    fontFeatureSettings = "tnum",
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = remainingLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        // Pin countdown time LTR so mm:ss is not reordered in RTL locales.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = remainingText,
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = timeFontSize,
+                        fontFeatureSettings = "tnum",
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = remainingLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -255,7 +292,7 @@ private fun CancelNapButton(
         onClick = onCancel,
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .heightIn(min = 60.dp),
         shape = CircleShape,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(
@@ -270,7 +307,6 @@ private fun CancelNapButton(
 @Composable
 private fun RunningScreenPreview() {
     EasyNapTheme {
-        // Preview cannot provide a real TimerController; use a stub state directly
         val endAt = System.currentTimeMillis() + 15 * 60_000L
         RunningScreenStateless(
             state = TimerState.Running(endAt, 15f, isSnooze = false),
@@ -307,6 +343,32 @@ private fun RunningScreenCompactLandscapePreview() {
     }
 }
 
+@Preview(showBackground = true, name = "Running - 200% font scale", fontScale = 2f)
+@Composable
+private fun RunningScreenFontScalePreview() {
+    EasyNapTheme {
+        val endAt = System.currentTimeMillis() + 15 * 60_000L
+        RunningScreenStateless(
+            state = TimerState.Running(endAt, 15f, isSnooze = false),
+            originalDurationMinutes = 15f,
+            onCancel = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Running - RTL", locale = "ar")
+@Composable
+private fun RunningScreenRtlPreview() {
+    EasyNapTheme {
+        val endAt = System.currentTimeMillis() + 15 * 60_000L
+        RunningScreenStateless(
+            state = TimerState.Running(endAt, 15f, isSnooze = false),
+            originalDurationMinutes = 15f,
+            onCancel = {}
+        )
+    }
+}
+
 @Composable
 private fun RunningScreenStateless(
     state: TimerState.Running,
@@ -318,8 +380,9 @@ private fun RunningScreenStateless(
     val remainingMs = (state.endAtMillis - System.currentTimeMillis()).coerceAtLeast(0L)
     val fraction = (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
     val displayMs = remainingMs.coerceIn(0L, totalMs)
-    val captionBase = formatDurationCaption(if (state.isSnooze) originalDurationMinutes else state.durationMinutes)
-    val caption = if (state.isSnooze) "Snoozed — $captionBase" else captionBase
+    val durationMinutes = if (state.isSnooze) originalDurationMinutes else state.durationMinutes
+    val captionBase = napCaption(durationMinutes)
+    val caption = if (state.isSnooze) stringResource(R.string.countdown_caption_snoozed, captionBase) else captionBase
 
     Scaffold { padding ->
         Box(
@@ -332,8 +395,8 @@ private fun RunningScreenStateless(
             RunningScreenContent(
                 caption = caption,
                 remainingText = formatRemainingTimeRoundUp(displayMs),
-                remainingLabel = "remaining",
-                cancelText = "Cancel nap",
+                remainingLabel = stringResource(R.string.countdown_remaining),
+                cancelText = stringResource(R.string.countdown_cancel_nap),
                 fraction = fraction,
                 compactLandscape = compactLandscape,
                 onCancel = onCancel

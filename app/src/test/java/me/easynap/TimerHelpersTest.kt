@@ -3,6 +3,8 @@ package me.easynap
 import me.easynap.timer.SNOOZE_OPTIONS
 import me.easynap.timer.anticipatedProgressMs
 import me.easynap.timer.appendToBuffer
+import me.easynap.timer.durationDisplayMinutesOrNull
+import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.formatRemainingTime
 import me.easynap.timer.formatRemainingTimeRoundUp
 import me.easynap.timer.isCustomDurationInRange
@@ -76,6 +78,22 @@ class TimerHelpersTest {
         assertEquals("60:00", formatRemainingTime(3_600_000))
     }
 
+    @Test
+    fun `durationTotalSeconds rounds stored minute fractions to seconds`() {
+        assertEquals(80, durationTotalSeconds(80f / 60f))
+    }
+
+    @Test
+    fun `durationDisplayMinutesOrNull floors durations one minute or longer`() {
+        assertEquals(1, durationDisplayMinutesOrNull(80f / 60f))
+        assertEquals(2, durationDisplayMinutesOrNull(179f / 60f))
+    }
+
+    @Test
+    fun `durationDisplayMinutesOrNull returns null for sub-minute durations`() {
+        assertNull(durationDisplayMinutesOrNull(59f / 60f))
+    }
+
     // formatRemainingTimeRoundUp — ceiling to nearest second
     @Test
     fun `formatRemainingTimeRoundUp rounds 1001ms up to two seconds`() {
@@ -134,15 +152,8 @@ class TimerHelpersTest {
     }
 
     @Test
-    fun `snooze options contains expected labels in order`() {
-        val labels = SNOOZE_OPTIONS.map { it.first }
-        assertEquals(listOf("+1 min", "+5 min", "+10 min"), labels)
-    }
-
-    @Test
     fun `snooze options contains expected durations in order`() {
-        val durations = SNOOZE_OPTIONS.map { it.second }
-        assertEquals(listOf(1f, 5f, 10f), durations)
+        assertEquals(listOf(1f, 5f, 10f), SNOOZE_OPTIONS)
     }
 
     @Test
@@ -166,10 +177,10 @@ class TimerHelpersTest {
         assertEquals(0, parseCustomDurationSeconds("0"))
     }
 
-    // parseCustomDurationSeconds — mm:ss
+    // parseCustomDurationSeconds — 0:ss
     @Test
-    fun `parseCustomDurationSeconds mm colon ss returns correct seconds`() {
-        assertEquals(12 * 60 + 30, parseCustomDurationSeconds("12:30"))
+    fun `parseCustomDurationSeconds rejects non-zero minute field with colon`() {
+        assertNull(parseCustomDurationSeconds("12:30"))
     }
 
     @Test
@@ -180,12 +191,12 @@ class TimerHelpersTest {
     // parseCustomDurationSeconds — seconds clamping
     @Test
     fun `parseCustomDurationSeconds clamps seconds above 59`() {
-        assertEquals(12 * 60 + 59, parseCustomDurationSeconds("12:99"))
+        assertEquals(59, parseCustomDurationSeconds("0:99"))
     }
 
     @Test
-    fun `parseCustomDurationSeconds clamps seconds exactly 60 to 59`() {
-        assertEquals(1 * 60 + 59, parseCustomDurationSeconds("1:60"))
+    fun `parseCustomDurationSeconds clamps zero-minute seconds exactly 60 to 59`() {
+        assertEquals(59, parseCustomDurationSeconds("0:60"))
     }
 
     // parseCustomDurationSeconds — decimal rejection
@@ -263,13 +274,19 @@ class TimerHelpersTest {
     }
 
     @Test
-    fun `appendToBuffer inserts colon when not present and buffer non-empty`() {
-        assertEquals("12:", appendToBuffer("12", ":"))
+    fun `appendToBuffer inserts colon after zero minute field`() {
+        assertEquals("0:", appendToBuffer("0", ":"))
+        assertEquals("00:", appendToBuffer("00", ":"))
+    }
+
+    @Test
+    fun `appendToBuffer rejects colon after non-zero minute field`() {
+        assertEquals("12", appendToBuffer("12", ":"))
     }
 
     @Test
     fun `appendToBuffer rejects colon when already present`() {
-        assertEquals("12:3", appendToBuffer("12:3", ":"))
+        assertEquals("0:3", appendToBuffer("0:3", ":"))
     }
 
     @Test
@@ -284,11 +301,11 @@ class TimerHelpersTest {
 
     @Test
     fun `appendToBuffer rejects digit when seconds field already has two digits`() {
-        assertEquals("12:30", appendToBuffer("12:30", "5"))
+        assertEquals("0:30", appendToBuffer("0:30", "5"))
     }
 
     @Test
     fun `appendToBuffer allows second digit in seconds field`() {
-        assertEquals("12:35", appendToBuffer("12:3", "5"))
+        assertEquals("0:35", appendToBuffer("0:3", "5"))
     }
 }

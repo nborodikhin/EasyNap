@@ -16,7 +16,12 @@ val CalmTealOnSurface = Color(0xFFE0E4E1)
 val CalmTealOnSurfaceVariant = Color(0xFF8DA29B)
 val CalmTealOutline = Color(0xFF3A4642)
 val CalmTealOutlineVariant = Color(0xFF2A322F)
-val CalmTealError = Color(0xFFB3261E)
+// Dark-theme error roles: lighter error foreground so helper text passes 4.5:1 on dark surfaces.
+// errorContainer is a dark red fill for the delete badge; onErrorContainer is the icon tint.
+val CalmTealError = Color(0xFFF2B8B5)
+val CalmTealOnError = Color(0xFF601410)
+val CalmTealErrorContainer = Color(0xFF8C1D18)
+val CalmTealOnErrorContainer = Color(0xFFF9DEDC)
 
 // Alarm screen has a slightly warmer dark background per the handoff
 val CalmTealAlarmBackground = Color(0xFF11201C)

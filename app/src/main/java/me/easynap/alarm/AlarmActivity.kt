@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -37,9 +37,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -52,9 +57,10 @@ import me.easynap.MainActivity
 import me.easynap.R
 import me.easynap.theme.CalmTealAlarmBackground
 import me.easynap.theme.EasyNapTheme
-import me.easynap.timer.TimerController
-import me.easynap.timer.formatDurationLabel
 import me.easynap.timer.SNOOZE_OPTIONS
+import me.easynap.timer.TimerController
+import me.easynap.timer.durationTotalSeconds
+import me.easynap.timer.durationDisplayMinutesOrNull
 
 @AndroidEntryPoint
 class AlarmActivity : ComponentActivity() {
@@ -105,7 +111,17 @@ class AlarmActivity : ComponentActivity() {
                 BackHandler { stopAlarmService() }
 
                 val durationMinutes by timerController.napDurationMinutes.collectAsStateWithLifecycle()
-                val durationLabel = formatDurationLabel(durationMinutes)
+                val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+                val body = if (wholeMinutes != null) {
+                    pluralStringResource(
+                        R.plurals.alarm_body_minutes,
+                        wholeMinutes,
+                        wholeMinutes
+                    )
+                } else {
+                    val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
+                    pluralStringResource(R.plurals.alarm_body_seconds, seconds, seconds)
+                }
                 Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
                     BoxWithConstraints(
                         modifier = Modifier
@@ -116,7 +132,7 @@ class AlarmActivity : ComponentActivity() {
                     ) {
                         AlarmContent(
                             headline = stringResource(R.string.alarm_headline),
-                            body = stringResource(R.string.alarm_body, durationLabel),
+                            body = body,
                             stopText = stringResource(R.string.alarm_stop),
                             snoozeLabel = stringResource(R.string.alarm_snooze_label),
                             compactLandscape = maxWidth > maxHeight && maxHeight < 520.dp,
@@ -206,7 +222,7 @@ private fun AlarmContent(
             verticalArrangement = Arrangement.Center
         ) {
             AlarmMessage(headline = headline, body = body, iconSize = 104.dp)
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.heightIn(min = 40.dp))
             AlarmActions(
                 stopText = stopText,
                 snoozeLabel = snoozeLabel,
@@ -231,17 +247,17 @@ private fun AlarmMessage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AlarmCheckIcon(size = iconSize)
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.heightIn(min = 24.dp))
         Text(
             text = headline,
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.heightIn(min = 12.dp))
         Text(
             text = body,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 8.dp)
@@ -268,7 +284,8 @@ private fun AlarmCheckIcon(size: Dp) {
             fontSize = 42.sp,
             fontWeight = FontWeight.Light,
             color = onPrimaryContainer,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.clearAndSetSemantics {}
         )
     }
 }
@@ -291,12 +308,12 @@ private fun AlarmActions(
             onClick = onStop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(stopHeight),
+                .heightIn(min = stopHeight),
             shape = CircleShape
         ) {
             Text(stopText, style = MaterialTheme.typography.titleMedium)
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.heightIn(min = 16.dp))
         Text(
             text = snoozeLabel,
             style = MaterialTheme.typography.labelSmall.copy(
@@ -304,21 +321,29 @@ private fun AlarmActions(
                 letterSpacing = 1.32.sp
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.clearAndSetSemantics {}
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.heightIn(min = 8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SNOOZE_OPTIONS.forEach { (label, minutes) ->
+            SNOOZE_OPTIONS.forEach { minutes ->
+                val n = minutes.toInt()
+                val label = pluralStringResource(R.plurals.snooze_option_minutes, n, n)
+                val buttonDesc = pluralStringResource(R.plurals.snooze_button_desc_minutes, n, n)
                 FilledTonalButton(
                     onClick = { onSnooze(minutes) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(snoozeHeight),
+                        .heightIn(min = snoozeHeight)
+                        .semantics { contentDescription = buttonDesc },
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text(label, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge.copy(textDirection = TextDirection.Ltr)
+                    )
                 }
             }
         }
@@ -332,10 +357,76 @@ private fun AlarmCompactLandscapePreview() {
         Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
             AlarmContent(
                 headline = "Time to wake up",
-                body = "Your 0:05-minute nap is done. Hope you feel refreshed.",
+                body = "Your 5-minute nap is done. Hope you feel refreshed.",
                 stopText = "Stop",
                 snoozeLabel = "SNOOZE",
                 compactLandscape = true,
+                onStop = {},
+                onSnooze = {},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 20.dp)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Alarm - portrait")
+@Composable
+private fun AlarmPortraitPreview() {
+    EasyNapTheme {
+        Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
+            AlarmContent(
+                headline = "Time to wake up",
+                body = "Your 20-minute nap is done. Hope you feel refreshed.",
+                stopText = "Stop",
+                snoozeLabel = "SNOOZE",
+                compactLandscape = false,
+                onStop = {},
+                onSnooze = {},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 20.dp)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Alarm - 200% font scale", fontScale = 2f)
+@Composable
+private fun AlarmFontScalePreview() {
+    EasyNapTheme {
+        Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
+            AlarmContent(
+                headline = "Time to wake up",
+                body = "Your 20-minute nap is done. Hope you feel refreshed.",
+                stopText = "Stop",
+                snoozeLabel = "SNOOZE",
+                compactLandscape = false,
+                onStop = {},
+                onSnooze = {},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 20.dp)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Alarm - RTL", locale = "ar")
+@Composable
+private fun AlarmRtlPreview() {
+    EasyNapTheme {
+        Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
+            AlarmContent(
+                headline = "Time to wake up",
+                body = "Your 20-minute nap is done. Hope you feel refreshed.",
+                stopText = "Stop",
+                snoozeLabel = "SNOOZE",
+                compactLandscape = false,
                 onStop = {},
                 onSnooze = {},
                 modifier = Modifier

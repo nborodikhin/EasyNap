@@ -87,7 +87,7 @@ class NapTimerServiceTest {
     }
 
     @Test
-    fun `notification title shows fractional duration as m colon ss nap is active`() {
+    fun `notification title floors duration over one minute to whole minutes`() {
         fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 90_000L, 1.5f)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
@@ -98,7 +98,22 @@ class NapTimerServiceTest {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val title = shadowOf(nm).allNotifications.firstOrNull()
             ?.extras?.getString(Notification.EXTRA_TITLE)
-        assertEquals("1:30 nap is active", title)
+        assertEquals("1 min nap is active", title)
+    }
+
+    @Test
+    fun `notification title shows sub-minute duration as seconds`() {
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 30_000L, 0.5f)
+
+        val service = Robolectric.buildService(NapTimerService::class.java).create().get()
+        service.onStartCommand(null, 0, 1)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val title = shadowOf(nm).allNotifications.firstOrNull()
+            ?.extras?.getString(Notification.EXTRA_TITLE)
+        assertEquals("30 sec nap is active", title)
     }
 
     @Test

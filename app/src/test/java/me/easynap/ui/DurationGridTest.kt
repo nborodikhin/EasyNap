@@ -1,9 +1,9 @@
 package me.easynap.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import me.easynap.theme.EasyNapTheme
 import org.junit.Assert.assertEquals
@@ -32,10 +32,10 @@ class DurationGridTest {
         }
 
         listOf("10", "20", "30", "40", "50").forEach { label ->
-            composeRule.onNodeWithText(label, substring = true).assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Start $label-minute nap").assertIsDisplayed()
         }
-        composeRule.onNodeWithText("+", substring = true).assertIsDisplayed()
-        assertTrue(composeRule.onAllNodesWithText("60", substring = true).fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithContentDescription("Custom duration").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithContentDescription("Start 60-minute nap").fetchSemanticsNodes().isEmpty())
     }
 
     @Test
@@ -46,8 +46,8 @@ class DurationGridTest {
             }
         }
 
-        composeRule.onNodeWithText("+", substring = true).assertIsDisplayed()
-        assertTrue(composeRule.onAllNodesWithText("min", substring = true).fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithContentDescription("Custom duration").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithContentDescription("Start 1-minute nap").fetchSemanticsNodes().isEmpty())
     }
 
     @Test
@@ -63,7 +63,7 @@ class DurationGridTest {
             }
         }
 
-        composeRule.onNodeWithText("15", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Start 15-minute nap").performClick()
 
         assertEquals(15f, selected)
     }
@@ -81,7 +81,7 @@ class DurationGridTest {
             }
         }
 
-        composeRule.onNodeWithText("+", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Custom duration").performClick()
 
         assertTrue(customClicked)
     }

@@ -48,13 +48,12 @@ class CustomDurationKeyHandlerTest {
     }
 
     @Test
-    fun `typing 12 semicolon 34 backspace 5 Enter starts nap at 12m35s`() {
+    fun `typing 0 semicolon 34 backspace 5 Enter starts nap at 35s`() {
         var startedSeconds: Int? = null
         setUpBody { startedSeconds = it }
 
         val keys = listOf(
-            Key.One,
-            Key.Two,
+            Key.Zero,
             Key.Semicolon,
             Key.Three,
             Key.Four,
@@ -68,7 +67,26 @@ class CustomDurationKeyHandlerTest {
             composeRule.waitForIdle()
         }
 
-        assertEquals(12 * 60 + 35, startedSeconds)
+        assertEquals(35, startedSeconds)
+    }
+
+    @Test
+    fun `typing non-zero minutes semicolon ignores colon and starts whole minutes`() {
+        var startedSeconds: Int? = null
+        setUpBody { startedSeconds = it }
+
+        val keys = listOf(
+            Key.One,
+            Key.Semicolon,
+            Key.Enter
+        )
+
+        for (key in keys) {
+            composeRule.onRoot().performKeyInput { pressKey(key) }
+            composeRule.waitForIdle()
+        }
+
+        assertEquals(60, startedSeconds)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package me.easynap.ui
 
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -26,12 +27,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.rememberScrollState
@@ -52,11 +53,11 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -73,13 +74,25 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,9 +101,9 @@ import me.easynap.R
 import me.easynap.theme.EasyNapTheme
 import me.easynap.timer.TimerController
 import me.easynap.timer.appendToBuffer
-import me.easynap.timer.formatDurationLabel
-import me.easynap.timer.formatDurationUnit
-import me.easynap.timer.formatNapDescription
+import me.easynap.timer.canAppendColon
+import me.easynap.timer.durationTotalSeconds
+import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.isCustomDurationInRange
 import me.easynap.timer.parseCustomDurationSeconds
 import me.easynap.data.TimerPreferenceStore
@@ -112,13 +125,22 @@ fun SetupScreen(
     var pendingUndoMinutes by rememberSaveable { mutableStateOf<Float?>(null) }
     var gridMode by remember { mutableStateOf<DurationGridMode>(DurationGridMode.Normal) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    val snackbarUndoText = stringResource(R.string.snackbar_undo)
 
     LaunchedEffect(pendingUndoMinutes) {
         val minutes = pendingUndoMinutes ?: return@LaunchedEffect
-        val label = formatDurationLabel(minutes) + " " + formatDurationUnit(minutes)
+        val wholeMinutes = durationDisplayMinutesOrNull(minutes)
+        val label = if (wholeMinutes != null) {
+            resources.getQuantityString(R.plurals.nap_caption_minutes, wholeMinutes, wholeMinutes)
+        } else {
+            val seconds = durationTotalSeconds(minutes).coerceAtLeast(0)
+            resources.getQuantityString(R.plurals.nap_caption_seconds, seconds, seconds)
+        }
+        val message = resources.getString(R.string.snackbar_timer_deleted, label)
         val result = snackbarHostState.showSnackbar(
-            message = "$label timer deleted",
-            actionLabel = "Undo",
+            message = message,
+            actionLabel = snackbarUndoText,
             duration = SnackbarDuration.Short
         )
         when (result) {
@@ -218,18 +240,22 @@ internal fun EnableNotificationsPrompt(
 ) {
     val isPromptVisible = !alarmNotificationsAvailable
     var initialised by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val reduceMotion = remember {
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
 
     AnimatedVisibility(
         visible = isPromptVisible,
-        enter = if (initialised) fadeIn() else EnterTransition.None,
-        exit = if (initialised) fadeOut() else ExitTransition.None,
+        enter = if (initialised && !reduceMotion) fadeIn() else EnterTransition.None,
+        exit = if (initialised && !reduceMotion) fadeOut() else ExitTransition.None,
         modifier = modifier
     ) {
         Text(
             text = stringResource(R.string.enable_notifications_prompt),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.clickable(onClick = onClick)
+            modifier = Modifier.clickable(role = Role.Button, onClick = onClick)
         )
     }
 
@@ -324,10 +350,27 @@ internal fun DurationTile(
     onLongClick: (() -> Unit)? = null,
     onIconClick: (() -> Unit)? = null
 ) {
-    val isWhole = minutes % 1f == 0f
+    val seconds = durationTotalSeconds(minutes)
+    val wholeMinutes = durationDisplayMinutesOrNull(minutes)
+    val isWhole = wholeMinutes != null
     val errorColor = MaterialTheme.colorScheme.error
     val errorBorderColor = errorColor.copy(alpha = 0.7f)
     val errorBgColor = errorColor.copy(alpha = 0.08f)
+    val errorContainerColor = MaterialTheme.colorScheme.errorContainer
+    val badgeIconColor = MaterialTheme.colorScheme.onErrorContainer
+
+    val unit = if (isWhole) {
+        stringResource(R.string.duration_unit_min)
+    } else {
+        stringResource(R.string.duration_unit_sec)
+    }
+    val caption = if (wholeMinutes != null) {
+        pluralStringResource(R.plurals.nap_caption_minutes, wholeMinutes, wholeMinutes)
+    } else {
+        pluralStringResource(R.plurals.nap_caption_seconds, seconds, seconds)
+    }
+    val startLabel = stringResource(R.string.tile_action_start, caption)
+    val deleteLabel = stringResource(R.string.tile_action_delete, caption)
 
     Box(modifier = modifier) {
         Card(
@@ -340,14 +383,30 @@ internal fun DurationTile(
                 )
                 .clip(MaterialTheme.shapes.extraLarge)
                 .combinedClickable(
+                    role = Role.Button,
+                    onClickLabel = startLabel,
+                    onLongClickLabel = if (onLongClick != null) deleteLabel else null,
                     onClick = onClick,
                     onLongClick = onLongClick
-                ),
+                )
+                .clearAndSetSemantics {
+                    contentDescription = startLabel
+                    role = Role.Button
+                    onClick(label = startLabel) {
+                        onClick()
+                        true
+                    }
+                    if (onLongClick != null) {
+                        onLongClick(label = deleteLabel) {
+                            onLongClick()
+                            true
+                        }
+                    }
+                },
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = if (isPendingDelete)
                     MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 1f).let {
-                        // blend error tint
                         Color(
                             red = it.red * 0.92f + errorBgColor.red * 0.08f,
                             green = it.green * 0.92f + errorBgColor.green * 0.08f,
@@ -366,9 +425,9 @@ internal fun DurationTile(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = formatDurationLabel(minutes),
+                    text = wholeMinutes?.toString() ?: seconds.toString(),
                     style = TextStyle(
-                        fontSize = if (isWhole) 28.sp else 22.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Normal,
                         fontFeatureSettings = "tnum"
                     ),
@@ -376,9 +435,10 @@ internal fun DurationTile(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = formatDurationUnit(minutes),
+                    text = unit,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -389,16 +449,17 @@ internal fun DurationTile(
                     .align(Alignment.TopEnd)
                     .size(48.dp)
                     .offset(x = 21.dp, y = (-21).dp)
+                    .semantics { contentDescription = deleteLabel }
                     .clickable(onClick = onIconClick ?: {})
                     .padding(13.dp)
-                    .background(errorColor, CircleShape)
+                    .background(errorContainerColor, CircleShape)
                     .testTag("delete-badge"),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = badgeIconColor,
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -408,9 +469,20 @@ internal fun DurationTile(
 
 @Composable
 internal fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val customDesc = stringResource(R.string.tile_custom_desc)
     Card(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 72.dp),
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .clearAndSetSemantics {
+                contentDescription = customDesc
+                role = Role.Button
+                onClick(label = customDesc) {
+                    onClick()
+                    true
+                }
+            }
+            .testTag("custom-tile"),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -427,12 +499,14 @@ internal fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
                 text = "+",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.clearAndSetSemantics {}
             )
             Text(
-                text = "Custom",
+                text = stringResource(R.string.tile_custom),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.clearAndSetSemantics {}
             )
         }
     }
@@ -464,8 +538,13 @@ internal fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) 
     val isOutOfRange = parsedSeconds != null && !isCustomDurationInRange(parsedSeconds)
     val isStartEnabled = parsedSeconds != null && isCustomDurationInRange(parsedSeconds)
 
+    val context = LocalContext.current
+    val reduceMotion = remember {
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "cursor")
-    val cursorAlpha by infiniteTransition.animateFloat(
+    val animatedCursorAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable(
@@ -474,6 +553,7 @@ internal fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) 
         ),
         label = "cursorAlpha"
     )
+    val cursorAlpha = if (reduceMotion) 1f else animatedCursorAlpha
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -582,7 +662,8 @@ internal fun ValueDisplay(
             Text(
                 text = "|",
                 style = TextStyle(fontSize = fontSize, fontWeight = FontWeight.Light),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha)
+                color = MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha),
+                modifier = Modifier.clearAndSetSemantics {}
             )
         }
     }
@@ -615,11 +696,13 @@ internal fun NumericKeypad(
                 row.forEach { key ->
                     val isSpecial = key == ":" || key == "⌫"
                     val enabled = if (key == ":") colonEnabled else true
+                    val keyContentDesc = if (key == "⌫") stringResource(R.string.keypad_backspace_desc) else null
                     KeypadButton(
                         label = key,
                         onClick = { onKey(key) },
                         enabled = enabled,
                         isSpecial = isSpecial,
+                        contentDescription = keyContentDesc,
                         height = keyHeight,
                         fontSize = keyFontSize,
                         modifier = Modifier.weight(1f)
@@ -637,26 +720,36 @@ internal fun KeypadButton(
     enabled: Boolean,
     isSpecial: Boolean,
     modifier: Modifier = Modifier,
+    contentDescription: String? = null,
     height: Dp = 56.dp,
     fontSize: TextUnit = 23.sp
 ) {
     Card(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.height(height),
+        modifier = modifier.heightIn(min = height),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.38f)
         )
     ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = height),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
                 text = label,
                 fontSize = fontSize,
                 color = if (isSpecial) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = if (contentDescription != null)
+                    Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }
+                else
+                    Modifier
             )
         }
     }
@@ -680,8 +773,22 @@ private fun CustomDurationSheetContent(
     val helperColor = if (isOutOfRange) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     val helperText = when {
         isOutOfRange -> errorText
-        isStartEnabled && parsedSeconds != null -> formatNapDescription(parsedSeconds)
+        isStartEnabled && parsedSeconds != null -> {
+            val minutes = parsedSeconds / 60
+            val secs = parsedSeconds % 60
+            when {
+                minutes == 0 -> pluralStringResource(R.plurals.nap_desc_seconds, secs, secs)
+                else -> pluralStringResource(R.plurals.nap_desc_minutes, minutes, minutes)
+            }
+        }
         else -> ""
+    }
+    val emptyDesc = stringResource(R.string.custom_duration_empty_desc)
+    val valueDisplayDesc = when {
+        inputBuffer.isEmpty() -> emptyDesc
+        isOutOfRange -> errorText
+        helperText.isNotEmpty() -> helperText
+        else -> inputBuffer
     }
 
     if (compactLandscape) {
@@ -705,13 +812,23 @@ private fun CustomDurationSheetContent(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(12.dp))
-                ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha, fontSize = 44.sp)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = helperText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = helperColor
-                )
+                // Pin value display and keypad to LTR so digit order doesn't mirror in RTL locales.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clearAndSetSemantics { contentDescription = valueDisplayDesc },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha, fontSize = 44.sp)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = helperText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = helperColor
+                    )
+                }
                 Spacer(Modifier.height(16.dp))
                 StartDurationButton(
                     text = startText,
@@ -720,13 +837,15 @@ private fun CustomDurationSheetContent(
                     onStart = onStart
                 )
             }
-            NumericKeypad(
-                onKey = onKey,
-                colonEnabled = inputBuffer.isNotEmpty() && ':' !in inputBuffer,
-                modifier = Modifier.weight(1.25f),
-                keyHeight = 48.dp,
-                keyFontSize = 21.sp
-            )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                NumericKeypad(
+                    onKey = onKey,
+                    colonEnabled = canAppendColon(inputBuffer),
+                    modifier = Modifier.weight(1.25f),
+                    keyHeight = 48.dp,
+                    keyFontSize = 21.sp
+                )
+            }
         }
     } else {
         Column(
@@ -743,18 +862,29 @@ private fun CustomDurationSheetContent(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(20.dp))
-            ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = helperText,
-                style = MaterialTheme.typography.bodySmall,
-                color = helperColor
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clearAndSetSemantics { contentDescription = valueDisplayDesc },
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    ValueDisplay(inputBuffer = inputBuffer, cursorAlpha = cursorAlpha)
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = helperText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = helperColor
+                )
+            }
             Spacer(Modifier.height(20.dp))
-            NumericKeypad(
-                onKey = onKey,
-                colonEnabled = inputBuffer.isNotEmpty() && ':' !in inputBuffer
-            )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                NumericKeypad(
+                    onKey = onKey,
+                    colonEnabled = canAppendColon(inputBuffer)
+                )
+            }
             Spacer(Modifier.height(20.dp))
             StartDurationButton(
                 text = startText,
@@ -778,7 +908,7 @@ private fun StartDurationButton(
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .heightIn(min = 56.dp),
         shape = CircleShape
     ) {
         Text(text, style = MaterialTheme.typography.titleMedium)
@@ -790,6 +920,30 @@ private fun StartDurationButton(
 @Preview(showBackground = true, name = "SetupScreen")
 @Composable
 private fun SetupScreenPreview() {
+    EasyNapTheme {
+        SetupScreenStateless(
+            history = TimerPreferenceStore.DEFAULT_HISTORY,
+            onDurationSelected = {},
+            onCustom = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "SetupScreen - 200% font scale", fontScale = 2f)
+@Composable
+private fun SetupScreenFontScalePreview() {
+    EasyNapTheme {
+        SetupScreenStateless(
+            history = TimerPreferenceStore.DEFAULT_HISTORY,
+            onDurationSelected = {},
+            onCustom = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "SetupScreen - RTL", locale = "ar")
+@Composable
+private fun SetupScreenRtlPreview() {
     EasyNapTheme {
         SetupScreenStateless(
             history = TimerPreferenceStore.DEFAULT_HISTORY,
@@ -847,7 +1001,7 @@ private fun CustomDurationSheetEmptyPreview() {
 @Composable
 private fun CustomDurationSheetFilledPreview() {
     EasyNapTheme {
-        CustomDurationSheetStateless(inputBuffer = "12:30", cursorAlpha = 0f, onKey = {}, onStart = {})
+        CustomDurationSheetStateless(inputBuffer = "0:30", cursorAlpha = 0f, onKey = {}, onStart = {})
     }
 }
 
@@ -861,12 +1015,28 @@ private fun CustomDurationSheetFilledPreview() {
 private fun CustomDurationSheetCompactLandscapePreview() {
     EasyNapTheme {
         CustomDurationSheetStateless(
-            inputBuffer = "12:30",
+            inputBuffer = "0:30",
             cursorAlpha = 0f,
             onKey = {},
             onStart = {},
             compactLandscape = true
         )
+    }
+}
+
+@Preview(showBackground = true, name = "CustomDurationSheet - 200% font scale", fontScale = 2f)
+@Composable
+private fun CustomDurationSheetFontScalePreview() {
+    EasyNapTheme {
+        CustomDurationSheetStateless(inputBuffer = "0:30", cursorAlpha = 1f, onKey = {}, onStart = {})
+    }
+}
+
+@Preview(showBackground = true, name = "CustomDurationSheet - RTL", locale = "ar")
+@Composable
+private fun CustomDurationSheetRtlPreview() {
+    EasyNapTheme {
+        CustomDurationSheetStateless(inputBuffer = "0:30", cursorAlpha = 1f, onKey = {}, onStart = {})
     }
 }
 
@@ -879,7 +1049,7 @@ private fun ValueDisplayEmptyPreview() {
 @Preview(showBackground = true, name = "ValueDisplay - filled")
 @Composable
 private fun ValueDisplayFilledPreview() {
-    EasyNapTheme { ValueDisplay(inputBuffer = "12:30", cursorAlpha = 0f) }
+    EasyNapTheme { ValueDisplay(inputBuffer = "0:30", cursorAlpha = 0f) }
 }
 
 @Preview(showBackground = true, name = "NumericKeypad - colon enabled")
@@ -930,7 +1100,7 @@ private fun SetupScreenStateless(
                 .padding(horizontal = 20.dp),
         ) {
             Spacer(Modifier.height(18.dp))
-            Text("EasyNap", style = MaterialTheme.typography.titleLarge)
+            Text("Easy Nap", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(28.dp))
             Text("Take a nap", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(8.dp))

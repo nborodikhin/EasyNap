@@ -6,10 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+
 import me.easynap.theme.EasyNapTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,9 +44,9 @@ class DurationGridDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("10", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performClick()
 
         assertEquals(-1f, deleted)
         assertEquals(-1f, selected)
@@ -70,9 +71,9 @@ class DurationGridDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("20", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Start 20-minute nap").performClick()
 
         assertEquals(-1f, deleted)
         assertEquals(-1f, selected)
@@ -96,10 +97,10 @@ class DurationGridDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("20", substring = true).performClick() // cancel via other tile
-        composeRule.onNodeWithText("10", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Start 20-minute nap").performClick() // cancel via other tile
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performClick()
 
         assertEquals(10f, selected)
     }
@@ -122,9 +123,9 @@ class DurationGridDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("+", substring = true).performClick() // cancel
+        composeRule.onNodeWithContentDescription("Custom duration").performClick() // cancel
 
         assertFalse(customClicked)
         assertEquals(-1f, deleted)
@@ -147,10 +148,10 @@ class DurationGridDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("+", substring = true).performClick() // cancel delete mode
-        composeRule.onNodeWithText("+", substring = true).performClick() // now open sheet
+        composeRule.onNodeWithContentDescription("Custom duration").performClick() // cancel delete mode
+        composeRule.onNodeWithContentDescription("Custom duration").performClick() // now open sheet
 
         assertTrue(customClicked)
     }
@@ -217,7 +218,7 @@ class DurationTileDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
 
         assertTrue(longClicked)
     }
@@ -231,7 +232,7 @@ class DurationTileDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performClick()
 
         assertTrue(clicked)
     }
@@ -249,7 +250,7 @@ class DurationTileDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
 
         assertFalse(clicked)
     }
@@ -267,7 +268,7 @@ class DurationTileDeleteTest {
             }
         }
 
-        composeRule.onNodeWithText("10", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Start 10-minute nap").performClick()
 
         // onClick fires but does nothing (no-op lambda); badge click is the delete trigger
         assertFalse(clicked)

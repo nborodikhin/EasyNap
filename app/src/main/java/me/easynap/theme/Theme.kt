@@ -23,6 +23,9 @@ private val AppColorScheme = darkColorScheme(
     outline = CalmTealOutline,
     outlineVariant = CalmTealOutlineVariant,
     error = CalmTealError,
+    onError = CalmTealOnError,
+    errorContainer = CalmTealErrorContainer,
+    onErrorContainer = CalmTealOnErrorContainer,
 )
 
 private val AppShapes = Shapes(

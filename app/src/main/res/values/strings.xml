@@ -9,8 +9,7 @@
     <string name="custom_duration_start">Start nap</string>
     <string name="custom_duration_error">Enter 0:05 – 120 min</string>
     <string name="countdown_caption_snoozed">%1$s (snoozed)</string>
-    <string name="notif_app_name">EasyNap</string>
-    <string name="notif_duration_min">%1$d min</string>
+    <string name="notif_app_name">Easy Nap</string>
     <string name="notif_timer_title">%1$s nap is active</string>
     <string name="notif_alarm_title">%1$s nap is over</string>
     <string name="notif_timer_remaining">Remaining: %1$s</string>
@@ -21,7 +20,19 @@
     <string name="notification_channel_alarm">Alarm</string>
     <string name="enable_notifications_prompt">Enable notifications</string>
     <string name="alarm_headline">Time to wake up</string>
-    <string name="alarm_body">Your %1$s-minute nap is done. Hope you feel refreshed.</string>
     <string name="alarm_stop">Stop</string>
     <string name="alarm_snooze_label">SNOOZE</string>
+    <!-- Duration display -->
+    <string name="duration_unit_min">min</string>
+    <string name="duration_unit_sec">sec</string>
+    <!-- Setup screen -->
+    <string name="tile_custom">Custom</string>
+    <string name="tile_custom_desc">Custom nap</string>
+    <string name="snackbar_timer_deleted">%1$s timer deleted</string>
+    <string name="snackbar_undo">Undo</string>
+    <!-- Accessibility action labels -->
+    <string name="tile_action_start">Start %s</string>
+    <string name="tile_action_delete">Delete %s</string>
+    <string name="keypad_backspace_desc">Delete</string>
+    <string name="custom_duration_empty_desc">Enter nap length</string>
 </resources>

@@ -22,7 +22,8 @@ import me.easynap.R
 import me.easynap.notifications.EasyNapNotifications
 import me.easynap.service.NapTimerService
 import me.easynap.timer.TimerController
-import me.easynap.timer.formatDurationLabel
+import me.easynap.timer.durationTotalSeconds
+import me.easynap.timer.durationDisplayMinutesOrNull
 
 @AndroidEntryPoint
 class AlarmService : Service() {
@@ -98,10 +99,12 @@ class AlarmService : Service() {
 
         val durationMinutes = timerController.napDurationMinutes.value
         val title = if (durationMinutes > 0f) {
-            val prefix = if (durationMinutes % 1f == 0f) {
-                getString(R.string.notif_duration_min, durationMinutes.toInt())
+            val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+            val prefix = if (wholeMinutes != null) {
+                resources.getQuantityString(R.plurals.notif_duration_min, wholeMinutes, wholeMinutes)
             } else {
-                formatDurationLabel(durationMinutes)
+                val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
+                resources.getQuantityString(R.plurals.notif_duration_sec, seconds, seconds)
             }
             getString(R.string.notif_alarm_title, prefix)
         } else {
