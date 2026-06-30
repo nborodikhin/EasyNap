@@ -36,12 +36,12 @@ class TimerController @Inject constructor(
     val state: StateFlow<TimerState> = _state.asStateFlow()
 
     private val _history = MutableStateFlow(me.easynap.data.TimerPreferenceStore.DEFAULT_HISTORY)
-    val history: StateFlow<List<Float>> = _history.asStateFlow()
+    val history: StateFlow<List<Int>> = _history.asStateFlow()
 
-    private val _napDurationMinutes = MutableStateFlow(0f)
-    val napDurationMinutes: StateFlow<Float> = _napDurationMinutes.asStateFlow()
+    private val _napDurationSeconds = MutableStateFlow(0)
+    val napDurationSeconds: StateFlow<Int> = _napDurationSeconds.asStateFlow()
 
-    private data class PendingUndo(val minutes: Float, val position: Int)
+    private data class PendingUndo(val seconds: Int, val position: Int)
     private var pendingUndo: PendingUndo? = null
 
     init {
@@ -49,12 +49,12 @@ class TimerController @Inject constructor(
             store.history.collect { _history.value = it }
         }
         scope.launch {
-            store.napDurationMinutes.collect { _napDurationMinutes.value = it }
+            store.napDurationSeconds.collect { _napDurationSeconds.value = it }
         }
         scope.launch {
             val activeTimer = store.loadActiveTimer()
             _state.value = if (activeTimer != null) {
-                TimerState.Running(activeTimer.endAtMillis, activeTimer.durationMinutes)
+                TimerState.Running(activeTimer.endAtMillis, activeTimer.durationSeconds)
             } else {
                 store.clearActiveTimer()
                 TimerState.Idle
@@ -62,15 +62,15 @@ class TimerController @Inject constructor(
         }
     }
 
-    fun addTimer(durationMinutes: Float, position: Int = 0) {
-        scope.launch { store.addToHistory(durationMinutes, position) }
+    fun addTimer(durationSeconds: Int, position: Int = 0) {
+        scope.launch { store.addToHistory(durationSeconds, position) }
     }
 
-    fun removeFromHistory(durationMinutes: Float) {
-        val position = _history.value.indexOf(durationMinutes).takeIf { it >= 0 } ?: return
-        pendingUndo = PendingUndo(durationMinutes, position)
+    fun removeFromHistory(durationSeconds: Int) {
+        val position = _history.value.indexOf(durationSeconds).takeIf { it >= 0 } ?: return
+        pendingUndo = PendingUndo(durationSeconds, position)
         scope.launch {
-            store.removeFromHistory(durationMinutes)
+            store.removeFromHistory(durationSeconds)
             delay(UNDO_WINDOW_MS)
             pendingUndo = null
         }
@@ -79,25 +79,25 @@ class TimerController @Inject constructor(
     fun undo() {
         val undo = pendingUndo ?: return
         pendingUndo = null
-        scope.launch { store.addToHistory(undo.minutes, undo.position) }
+        scope.launch { store.addToHistory(undo.seconds, undo.position) }
     }
 
-    fun start(durationMinutes: Float) {
-        _napDurationMinutes.value = durationMinutes
-        startInternal(durationMinutes, isSnooze = false)
+    fun start(durationSeconds: Int) {
+        _napDurationSeconds.value = durationSeconds
+        startInternal(durationSeconds, isSnooze = false)
     }
 
-    fun startSnooze(durationMinutes: Float) {
-        startInternal(durationMinutes, isSnooze = true)
+    fun startSnooze(durationSeconds: Int) {
+        startInternal(durationSeconds, isSnooze = true)
     }
 
-    private fun startInternal(durationMinutes: Float, isSnooze: Boolean) {
-        val durationMs = (durationMinutes * 60_000).toLong()
-        val pad = if (durationMinutes >= 1f) PAD_MS_LONG else PAD_MS_SHORT
+    private fun startInternal(durationSeconds: Int, isSnooze: Boolean) {
+        val durationMs = durationSeconds * 1000L
+        val pad = if (durationSeconds >= 60) PAD_MS_LONG else PAD_MS_SHORT
         val endAt = System.currentTimeMillis() + durationMs + pad
         scope.launch {
-            store.startTimer(endAt, durationMinutes, updateNapDuration = !isSnooze)
-            _state.value = TimerState.Running(endAt, durationMinutes, isSnooze = isSnooze)
+            store.startTimer(endAt, durationSeconds, updateNapDuration = !isSnooze)
+            _state.value = TimerState.Running(endAt, durationSeconds, isSnooze = isSnooze)
             startCountdownService()
             scheduleAlarm(endAt)
         }

@@ -102,7 +102,6 @@ import me.easynap.theme.EasyNapTheme
 import me.easynap.timer.TimerController
 import me.easynap.timer.appendToBuffer
 import me.easynap.timer.canAppendColon
-import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.isCustomDurationInRange
 import me.easynap.timer.parseCustomDurationSeconds
@@ -110,7 +109,7 @@ import me.easynap.data.TimerPreferenceStore
 
 sealed interface DurationGridMode {
     data object Normal : DurationGridMode
-    data class PendingDelete(val minutes: Float) : DurationGridMode
+    data class PendingDelete(val seconds: Int) : DurationGridMode
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,20 +121,20 @@ fun SetupScreen(
 ) {
     var showCustomSheet by rememberSaveable { mutableStateOf(false) }
     val history by timerController.history.collectAsStateWithLifecycle()
-    var pendingUndoMinutes by rememberSaveable { mutableStateOf<Float?>(null) }
+    var pendingUndoSeconds by rememberSaveable { mutableStateOf<Int?>(null) }
     var gridMode by remember { mutableStateOf<DurationGridMode>(DurationGridMode.Normal) }
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val snackbarUndoText = stringResource(R.string.snackbar_undo)
 
-    LaunchedEffect(pendingUndoMinutes) {
-        val minutes = pendingUndoMinutes ?: return@LaunchedEffect
-        val wholeMinutes = durationDisplayMinutesOrNull(minutes)
+    LaunchedEffect(pendingUndoSeconds) {
+        val seconds = pendingUndoSeconds ?: return@LaunchedEffect
+        val wholeMinutes = durationDisplayMinutesOrNull(seconds)
         val label = if (wholeMinutes != null) {
             resources.getQuantityString(R.plurals.nap_caption_minutes, wholeMinutes, wholeMinutes)
         } else {
-            val seconds = durationTotalSeconds(minutes).coerceAtLeast(0)
-            resources.getQuantityString(R.plurals.nap_caption_seconds, seconds, seconds)
+            val s = seconds.coerceAtLeast(0)
+            resources.getQuantityString(R.plurals.nap_caption_seconds, s, s)
         }
         val message = resources.getString(R.string.snackbar_timer_deleted, label)
         val result = snackbarHostState.showSnackbar(
@@ -146,9 +145,9 @@ fun SetupScreen(
         when (result) {
             SnackbarResult.ActionPerformed -> {
                 timerController.undo()
-                pendingUndoMinutes = null
+                pendingUndoSeconds = null
             }
-            SnackbarResult.Dismissed -> pendingUndoMinutes = null
+            SnackbarResult.Dismissed -> pendingUndoSeconds = null
         }
     }
 
@@ -196,14 +195,14 @@ fun SetupScreen(
                     durations = history,
                     mode = gridMode,
                     onModeChange = { gridMode = it },
-                    onDurationSelected = { minutes ->
-                        timerController.addTimer(minutes, 0)
-                        timerController.start(minutes)
+                    onDurationSelected = { seconds ->
+                        timerController.addTimer(seconds, 0)
+                        timerController.start(seconds)
                     },
                     onCustom = { showCustomSheet = true },
-                    onDurationDeleted = { minutes ->
-                        timerController.removeFromHistory(minutes)
-                        pendingUndoMinutes = minutes
+                    onDurationDeleted = { seconds ->
+                        timerController.removeFromHistory(seconds)
+                        pendingUndoSeconds = seconds
                     }
                 )
                 Spacer(Modifier.height(28.dp))
@@ -224,9 +223,8 @@ fun SetupScreen(
             onDismiss = { showCustomSheet = false },
             onStart = { seconds ->
                 showCustomSheet = false
-                val minutes = seconds / 60f
-                timerController.addTimer(minutes, 0)
-                timerController.start(minutes)
+                timerController.addTimer(seconds, 0)
+                timerController.start(seconds)
             }
         )
     }
@@ -267,14 +265,14 @@ internal fun EnableNotificationsPrompt(
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun DurationGrid(
-    durations: List<Float>,
-    onDurationSelected: (Float) -> Unit,
+    durations: List<Int>,
+    onDurationSelected: (Int) -> Unit,
     onCustom: () -> Unit,
-    onDurationDeleted: (Float) -> Unit = {},
+    onDurationDeleted: (Int) -> Unit = {},
     mode: DurationGridMode = DurationGridMode.Normal,
     onModeChange: (DurationGridMode) -> Unit = {}
 ) {
-    val rows = (durations.take(5) + listOf(Float.NEGATIVE_INFINITY)).chunked(3)
+    val rows = (durations.take(5).map<Int, Int?> { it } + listOf(null)).chunked(3)
     Column(
         verticalArrangement = Arrangement.spacedBy(9.dp),
         modifier = Modifier.clickable(
@@ -290,7 +288,7 @@ internal fun DurationGrid(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 row.forEach { item ->
-                    if (item == Float.NEGATIVE_INFINITY) {
+                    if (item == null) {
                         val dimmed = mode is DurationGridMode.PendingDelete
                         CustomTile(
                             onClick = {
@@ -303,10 +301,10 @@ internal fun DurationGrid(
                         )
                     } else {
                         val isPendingDelete = mode is DurationGridMode.PendingDelete &&
-                                (mode as DurationGridMode.PendingDelete).minutes == item
+                                (mode as DurationGridMode.PendingDelete).seconds == item
                         val isDimmed = mode is DurationGridMode.PendingDelete && !isPendingDelete
                         DurationTile(
-                            minutes = item,
+                            seconds = item,
                             isPendingDelete = isPendingDelete,
                             onClick = {
                                 when {
@@ -343,15 +341,14 @@ internal fun DurationGrid(
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun DurationTile(
-    minutes: Float,
+    seconds: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isPendingDelete: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     onIconClick: (() -> Unit)? = null
 ) {
-    val seconds = durationTotalSeconds(minutes)
-    val wholeMinutes = durationDisplayMinutesOrNull(minutes)
+    val wholeMinutes = durationDisplayMinutesOrNull(seconds)
     val isWhole = wholeMinutes != null
     val errorColor = MaterialTheme.colorScheme.error
     val errorBorderColor = errorColor.copy(alpha = 0.7f)
@@ -968,19 +965,19 @@ private fun DurationGridPreview() {
 @Preview(showBackground = true, name = "DurationTile - whole minute")
 @Composable
 private fun DurationTileWholePreview() {
-    EasyNapTheme { DurationTile(minutes = 10f, onClick = {}) }
+    EasyNapTheme { DurationTile(seconds = 600, onClick = {}) }
 }
 
 @Preview(showBackground = true, name = "DurationTile - pending delete")
 @Composable
 private fun DurationTilePendingDeletePreview() {
-    EasyNapTheme { DurationTile(minutes = 10f, onClick = {}, isPendingDelete = true) }
+    EasyNapTheme { DurationTile(seconds = 600, onClick = {}, isPendingDelete = true) }
 }
 
 @Preview(showBackground = true, name = "DurationTile - fractional")
 @Composable
 private fun DurationTileFractionalPreview() {
-    EasyNapTheme { DurationTile(minutes = 1.5f, onClick = {}) }
+    EasyNapTheme { DurationTile(seconds = 90, onClick = {}) }
 }
 
 @Preview(showBackground = true, name = "CustomTile")
@@ -1086,8 +1083,8 @@ private fun KeypadButtonDisabledPreview() {
 
 @Composable
 private fun SetupScreenStateless(
-    history: List<Float>,
-    onDurationSelected: (Float) -> Unit,
+    history: List<Int>,
+    onDurationSelected: (Int) -> Unit,
     onCustom: () -> Unit
 ) {
     Scaffold { padding ->

@@ -28,13 +28,13 @@ class DurationGridDeleteTest {
 
     @Test
     fun `tapping pending-delete tile itself does nothing`() {
-        var deleted = -1f
-        var selected = -1f
+        var deleted = -1
+        var selected = -1
         var mode by mutableStateOf<DurationGridMode>(DurationGridMode.Normal)
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f, 20f),
+                    durations = listOf(600, 1200),
                     onDurationSelected = { selected = it },
                     onCustom = {},
                     onDurationDeleted = { deleted = it },
@@ -48,20 +48,20 @@ class DurationGridDeleteTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Start 10-minute nap").performClick()
 
-        assertEquals(-1f, deleted)
-        assertEquals(-1f, selected)
+        assertEquals(-1, deleted)
+        assertEquals(-1, selected)
         assertTrue(mode is DurationGridMode.PendingDelete)
     }
 
     @Test
     fun `tapping another tile in pending-delete cancels mode without deleting or selecting`() {
-        var deleted = -1f
-        var selected = -1f
+        var deleted = -1
+        var selected = -1
         var mode by mutableStateOf<DurationGridMode>(DurationGridMode.Normal)
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f, 20f),
+                    durations = listOf(600, 1200),
                     onDurationSelected = { selected = it },
                     onCustom = {},
                     onDurationDeleted = { deleted = it },
@@ -75,19 +75,19 @@ class DurationGridDeleteTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Start 20-minute nap").performClick()
 
-        assertEquals(-1f, deleted)
-        assertEquals(-1f, selected)
+        assertEquals(-1, deleted)
+        assertEquals(-1, selected)
         assertTrue(mode is DurationGridMode.Normal)
     }
 
     @Test
     fun `after cancel tapping the original tile selects normally`() {
-        var selected = -1f
+        var selected = -1
         var mode by mutableStateOf<DurationGridMode>(DurationGridMode.Normal)
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f, 20f),
+                    durations = listOf(600, 1200),
                     onDurationSelected = { selected = it },
                     onCustom = {},
                     onDurationDeleted = {},
@@ -102,18 +102,18 @@ class DurationGridDeleteTest {
         composeRule.onNodeWithContentDescription("Start 20-minute nap").performClick() // cancel via other tile
         composeRule.onNodeWithContentDescription("Start 10-minute nap").performClick()
 
-        assertEquals(10f, selected)
+        assertEquals(600, selected)
     }
 
     @Test
     fun `tapping custom tile in pending-delete cancels mode without opening custom sheet`() {
         var customClicked = false
-        var deleted = -1f
+        var deleted = -1
         var mode by mutableStateOf<DurationGridMode>(DurationGridMode.Normal)
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f),
+                    durations = listOf(600),
                     onDurationSelected = {},
                     onCustom = { customClicked = true },
                     onDurationDeleted = { deleted = it },
@@ -125,10 +125,10 @@ class DurationGridDeleteTest {
 
         composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("Custom duration").performClick() // cancel
+        composeRule.onNodeWithContentDescription("Custom nap").performClick() // cancel
 
         assertFalse(customClicked)
-        assertEquals(-1f, deleted)
+        assertEquals(-1, deleted)
     }
 
     @Test
@@ -138,7 +138,7 @@ class DurationGridDeleteTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f),
+                    durations = listOf(600),
                     onDurationSelected = {},
                     onCustom = { customClicked = true },
                     onDurationDeleted = {},
@@ -150,8 +150,8 @@ class DurationGridDeleteTest {
 
         composeRule.onNodeWithContentDescription("Start 10-minute nap").performTouchInput { longClick() }
         composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("Custom duration").performClick() // cancel delete mode
-        composeRule.onNodeWithContentDescription("Custom duration").performClick() // now open sheet
+        composeRule.onNodeWithContentDescription("Custom nap").performClick() // cancel delete mode
+        composeRule.onNodeWithContentDescription("Custom nap").performClick() // now open sheet
 
         assertTrue(customClicked)
     }
@@ -168,7 +168,7 @@ class DurationTileDeleteTest {
     fun `delete badge is visible when isPendingDelete is true`() {
         composeRule.setContent {
             EasyNapTheme {
-                DurationTile(minutes = 10f, onClick = {}, isPendingDelete = true)
+                DurationTile(seconds = 600, onClick = {}, isPendingDelete = true)
             }
         }
 
@@ -179,7 +179,7 @@ class DurationTileDeleteTest {
     fun `delete badge is absent in normal state`() {
         composeRule.setContent {
             EasyNapTheme {
-                DurationTile(minutes = 10f, onClick = {})
+                DurationTile(seconds = 600, onClick = {})
             }
         }
 
@@ -192,7 +192,7 @@ class DurationTileDeleteTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationTile(
-                    minutes = 10f,
+                    seconds = 600,
                     onClick = {},
                     isPendingDelete = true,
                     onIconClick = { iconClicked = true }
@@ -211,7 +211,7 @@ class DurationTileDeleteTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationTile(
-                    minutes = 10f,
+                    seconds = 600,
                     onClick = {},
                     onLongClick = { longClicked = true }
                 )
@@ -228,7 +228,7 @@ class DurationTileDeleteTest {
         var clicked = false
         composeRule.setContent {
             EasyNapTheme {
-                DurationTile(minutes = 10f, onClick = { clicked = true })
+                DurationTile(seconds = 600, onClick = { clicked = true })
             }
         }
 
@@ -243,7 +243,7 @@ class DurationTileDeleteTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationTile(
-                    minutes = 10f,
+                    seconds = 600,
                     onClick = { clicked = true },
                     onLongClick = {}
                 )
@@ -261,7 +261,7 @@ class DurationTileDeleteTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationTile(
-                    minutes = 10f,
+                    seconds = 600,
                     onClick = { clicked = false }, // onClick is a no-op in pending-delete in grid context
                     isPendingDelete = true
                 )

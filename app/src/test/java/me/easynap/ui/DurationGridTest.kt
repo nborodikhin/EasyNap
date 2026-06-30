@@ -24,7 +24,7 @@ class DurationGridTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f, 20f, 30f, 40f, 50f, 60f),
+                    durations = listOf(600, 1200, 1800, 2400, 3000, 3600),
                     onDurationSelected = {},
                     onCustom = {}
                 )
@@ -34,7 +34,7 @@ class DurationGridTest {
         listOf("10", "20", "30", "40", "50").forEach { label ->
             composeRule.onNodeWithContentDescription("Start $label-minute nap").assertIsDisplayed()
         }
-        composeRule.onNodeWithContentDescription("Custom duration").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Custom nap").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithContentDescription("Start 60-minute nap").fetchSemanticsNodes().isEmpty())
     }
 
@@ -46,17 +46,17 @@ class DurationGridTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Custom duration").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Custom nap").assertIsDisplayed()
         assertTrue(composeRule.onAllNodesWithContentDescription("Start 1-minute nap").fetchSemanticsNodes().isEmpty())
     }
 
     @Test
     fun `tapping a duration tile invokes callback with correct value`() {
-        var selected = -1f
+        var selected = -1
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(15f),
+                    durations = listOf(900),
                     onDurationSelected = { selected = it },
                     onCustom = {}
                 )
@@ -65,7 +65,7 @@ class DurationGridTest {
 
         composeRule.onNodeWithContentDescription("Start 15-minute nap").performClick()
 
-        assertEquals(15f, selected)
+        assertEquals(900, selected)
     }
 
     @Test
@@ -74,14 +74,14 @@ class DurationGridTest {
         composeRule.setContent {
             EasyNapTheme {
                 DurationGrid(
-                    durations = listOf(10f),
+                    durations = listOf(600),
                     onDurationSelected = {},
                     onCustom = { customClicked = true }
                 )
             }
         }
 
-        composeRule.onNodeWithContentDescription("Custom duration").performClick()
+        composeRule.onNodeWithContentDescription("Custom nap").performClick()
 
         assertTrue(customClicked)
     }

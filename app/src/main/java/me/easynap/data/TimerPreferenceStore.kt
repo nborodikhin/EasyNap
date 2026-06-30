@@ -6,7 +6,7 @@ import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -31,12 +31,12 @@ class TimerPreferenceStore @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) : TimerStore {
 
-    override val napDurationMinutes: Flow<Float> = dataStore.safeData.map { preferences ->
-        preferences[KEY_DURATION] ?: 0f
+    override val napDurationSeconds: Flow<Int> = dataStore.safeData.map { preferences ->
+        preferences[KEY_DURATION_SECONDS] ?: 0
     }
 
-    override val history: Flow<List<Float>> = dataStore.safeData.map { preferences ->
-        val raw = preferences[KEY_HISTORY]
+    override val history: Flow<List<Int>> = dataStore.safeData.map { preferences ->
+        val raw = preferences[KEY_HISTORY_SECONDS]
         if (raw == null) DEFAULT_HISTORY else parseHistory(raw)
     }
 
@@ -44,31 +44,31 @@ class TimerPreferenceStore @Inject constructor(
         return dataStore.safeData.first().toActiveTimer(nowMillis)
     }
 
-    override suspend fun getNapDurationMinutes(): Float {
-        return napDurationMinutes.first()
+    override suspend fun getNapDurationSeconds(): Int {
+        return napDurationSeconds.first()
     }
 
-    override suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateNapDuration: Boolean) {
+    override suspend fun startTimer(endAtMillis: Long, durationSeconds: Int, updateNapDuration: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_END_AT] = endAtMillis
-            if (updateNapDuration) preferences[KEY_DURATION] = durationMinutes
+            if (updateNapDuration) preferences[KEY_DURATION_SECONDS] = durationSeconds
         }
     }
 
-    override suspend fun addToHistory(minutes: Float, position: Int) {
+    override suspend fun addToHistory(seconds: Int, position: Int) {
         dataStore.edit { preferences ->
-            val current = preferences.parseStoredHistory().filterNot { it == minutes }
+            val current = preferences.parseStoredHistory().filterNot { it == seconds }
             val clamped = minOf(position, current.size)
-            val updated = (current.subList(0, clamped) + minutes + current.subList(clamped, current.size)).take(5)
-            preferences[KEY_HISTORY] = updated.joinToString(",")
+            val updated = (current.subList(0, clamped) + seconds + current.subList(clamped, current.size)).take(5)
+            preferences[KEY_HISTORY_SECONDS] = updated.joinToString(",")
         }
     }
 
-    override suspend fun removeFromHistory(minutes: Float) {
+    override suspend fun removeFromHistory(seconds: Int) {
         dataStore.edit { preferences ->
             val current = preferences.parseStoredHistory()
-            if (minutes !in current) return@edit
-            preferences[KEY_HISTORY] = current.filterNot { it == minutes }.joinToString(",")
+            if (seconds !in current) return@edit
+            preferences[KEY_HISTORY_SECONDS] = current.filterNot { it == seconds }.joinToString(",")
         }
     }
 
@@ -81,16 +81,16 @@ class TimerPreferenceStore @Inject constructor(
     companion object {
         const val LEGACY_PREFS_NAME = "easynap_prefs"
 
-        val DEFAULT_HISTORY = listOf(5f, 10f, 30f)
+        val DEFAULT_HISTORY = listOf(300, 600, 1800)
 
         private val KEY_END_AT = longPreferencesKey("end_at_millis")
-        private val KEY_DURATION = floatPreferencesKey("nap_duration_minutes")
-        private val KEY_HISTORY = stringPreferencesKey("duration_history")
+        private val KEY_DURATION_SECONDS = intPreferencesKey("nap_duration_seconds")
+        private val KEY_HISTORY_SECONDS = stringPreferencesKey("duration_history_seconds")
 
-        fun parseHistory(raw: String?): List<Float> {
+        fun parseHistory(raw: String?): List<Int> {
             return raw
                 ?.split(",")
-                ?.mapNotNull { it.trim().toFloatOrNull() }
+                ?.mapNotNull { it.trim().toIntOrNull() }
                 ?: emptyList()
         }
 
@@ -99,12 +99,12 @@ class TimerPreferenceStore @Inject constructor(
             if (endAtMillis <= nowMillis) return null
             return PersistedTimer(
                 endAtMillis = endAtMillis,
-                durationMinutes = this[KEY_DURATION] ?: 0f
+                durationSeconds = this[KEY_DURATION_SECONDS] ?: 0
             )
         }
 
-        private fun Preferences.parseStoredHistory(): List<Float> {
-            val raw = this[KEY_HISTORY] ?: return DEFAULT_HISTORY
+        private fun Preferences.parseStoredHistory(): List<Int> {
+            val raw = this[KEY_HISTORY_SECONDS] ?: return DEFAULT_HISTORY
             return parseHistory(raw)
         }
     }

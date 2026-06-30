@@ -22,7 +22,6 @@ import me.easynap.R
 import me.easynap.data.TimerStore
 import me.easynap.notifications.EasyNapNotifications
 import me.easynap.timer.TimerController
-import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.formatRemainingTime
 
@@ -45,7 +44,7 @@ class NapTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var endAtMillis = 0L
-    private var durationMinutes = 0f
+    private var durationSeconds = 0
 
     private val tick = object : Runnable {
         override fun run() {
@@ -79,7 +78,7 @@ class NapTimerService : Service() {
                 return@launch
             }
             endAtMillis = activeTimer.endAtMillis
-            durationMinutes = activeTimer.durationMinutes
+            durationSeconds = activeTimer.durationSeconds
             val remaining = endAtMillis - System.currentTimeMillis()
             updateNotification(remaining)
             handler.removeCallbacks(tick)
@@ -109,13 +108,13 @@ class NapTimerService : Service() {
             Intent(this, NapTimerService::class.java).apply { action = ACTION_STOP },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val title = if (durationMinutes > 0f) {
-            val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+        val title = if (durationSeconds > 0) {
+            val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
             val prefix = if (wholeMinutes != null) {
                 resources.getQuantityString(R.plurals.notif_duration_min, wholeMinutes, wholeMinutes)
             } else {
-                val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
-                resources.getQuantityString(R.plurals.notif_duration_sec, seconds, seconds)
+                val s = durationSeconds.coerceAtLeast(0)
+                resources.getQuantityString(R.plurals.notif_duration_sec, s, s)
             }
             getString(R.string.notif_timer_title, prefix)
         } else {

@@ -4,7 +4,6 @@ import me.easynap.timer.SNOOZE_OPTIONS
 import me.easynap.timer.anticipatedProgressMs
 import me.easynap.timer.appendToBuffer
 import me.easynap.timer.durationDisplayMinutesOrNull
-import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.formatRemainingTime
 import me.easynap.timer.formatRemainingTimeRoundUp
 import me.easynap.timer.isCustomDurationInRange
@@ -79,19 +78,16 @@ class TimerHelpersTest {
     }
 
     @Test
-    fun `durationTotalSeconds rounds stored minute fractions to seconds`() {
-        assertEquals(80, durationTotalSeconds(80f / 60f))
-    }
-
-    @Test
-    fun `durationDisplayMinutesOrNull floors durations one minute or longer`() {
-        assertEquals(1, durationDisplayMinutesOrNull(80f / 60f))
-        assertEquals(2, durationDisplayMinutesOrNull(179f / 60f))
+    fun `durationDisplayMinutesOrNull returns minutes for durations 60 seconds or longer`() {
+        assertEquals(1, durationDisplayMinutesOrNull(80))
+        assertEquals(2, durationDisplayMinutesOrNull(179))
+        assertEquals(10, durationDisplayMinutesOrNull(600))
     }
 
     @Test
     fun `durationDisplayMinutesOrNull returns null for sub-minute durations`() {
-        assertNull(durationDisplayMinutesOrNull(59f / 60f))
+        assertNull(durationDisplayMinutesOrNull(59))
+        assertNull(durationDisplayMinutesOrNull(0))
     }
 
     // formatRemainingTimeRoundUp — ceiling to nearest second
@@ -152,8 +148,8 @@ class TimerHelpersTest {
     }
 
     @Test
-    fun `snooze options contains expected durations in order`() {
-        assertEquals(listOf(1f, 5f, 10f), SNOOZE_OPTIONS)
+    fun `snooze options contains expected durations in seconds in order`() {
+        assertEquals(listOf(60, 300, 600), SNOOZE_OPTIONS)
     }
 
     @Test

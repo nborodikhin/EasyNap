@@ -59,7 +59,6 @@ import me.easynap.theme.CalmTealAlarmBackground
 import me.easynap.theme.EasyNapTheme
 import me.easynap.timer.SNOOZE_OPTIONS
 import me.easynap.timer.TimerController
-import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.durationDisplayMinutesOrNull
 
 @AndroidEntryPoint
@@ -110,8 +109,8 @@ class AlarmActivity : ComponentActivity() {
             EasyNapTheme {
                 BackHandler { stopAlarmService() }
 
-                val durationMinutes by timerController.napDurationMinutes.collectAsStateWithLifecycle()
-                val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+                val durationSeconds by timerController.napDurationSeconds.collectAsStateWithLifecycle()
+                val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
                 val body = if (wholeMinutes != null) {
                     pluralStringResource(
                         R.plurals.alarm_body_minutes,
@@ -119,8 +118,8 @@ class AlarmActivity : ComponentActivity() {
                         wholeMinutes
                     )
                 } else {
-                    val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
-                    pluralStringResource(R.plurals.alarm_body_seconds, seconds, seconds)
+                    val s = durationSeconds.coerceAtLeast(0)
+                    pluralStringResource(R.plurals.alarm_body_seconds, s, s)
                 }
                 Scaffold(containerColor = CalmTealAlarmBackground) { padding ->
                     BoxWithConstraints(
@@ -146,7 +145,7 @@ class AlarmActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = when (keyCode) {
-        KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> { snooze(1f); true }
+        KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> { snooze(60); true }
         KeyEvent.KEYCODE_ESCAPE -> { stopAlarmService(); true }
         else -> super.onKeyDown(keyCode, event)
     }
@@ -166,11 +165,11 @@ class AlarmActivity : ComponentActivity() {
         finish()
     }
 
-    private fun snooze(minutes: Float) {
+    private fun snooze(seconds: Int) {
         startService(Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_STOP
         })
-        timerController.startSnooze(minutes)
+        timerController.startSnooze(seconds)
         startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         })
@@ -186,7 +185,7 @@ private fun AlarmContent(
     snoozeLabel: String,
     compactLandscape: Boolean,
     onStop: () -> Unit,
-    onSnooze: (Float) -> Unit,
+    onSnooze: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (compactLandscape) {
@@ -297,7 +296,7 @@ private fun AlarmActions(
     stopHeight: Dp,
     snoozeHeight: Dp,
     onStop: () -> Unit,
-    onSnooze: (Float) -> Unit,
+    onSnooze: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -328,12 +327,12 @@ private fun AlarmActions(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SNOOZE_OPTIONS.forEach { minutes ->
-                val n = minutes.toInt()
+            SNOOZE_OPTIONS.forEach { seconds ->
+                val n = seconds / 60
                 val label = pluralStringResource(R.plurals.snooze_option_minutes, n, n)
                 val buttonDesc = pluralStringResource(R.plurals.snooze_button_desc_minutes, n, n)
                 FilledTonalButton(
-                    onClick = { onSnooze(minutes) },
+                    onClick = { onSnooze(seconds) },
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = snoozeHeight)

@@ -63,13 +63,12 @@ import me.easynap.theme.EasyNapTheme
 import me.easynap.timer.TimerController
 import me.easynap.timer.TimerState
 import me.easynap.timer.anticipatedProgressMs
-import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.formatRemainingTimeRoundUp
 
 @Composable
 fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
-    val totalMs = (state.durationMinutes * 60_000).toLong().coerceAtLeast(1L)
+    val totalMs = (state.durationSeconds * 1000L).coerceAtLeast(1L)
     val syncInterval = 1_000L
     var remainingMs by remember { mutableLongStateOf(state.endAtMillis - System.currentTimeMillis()) }
 
@@ -91,9 +90,9 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
     )
 
     val displayMs = remainingMs.coerceIn(0L, totalMs)
-    val originalDurationMinutes by timerController.napDurationMinutes.collectAsStateWithLifecycle()
-    val durationMinutes = if (state.isSnooze) originalDurationMinutes else state.durationMinutes
-    val captionBase = napCaption(durationMinutes)
+    val originalDurationSeconds by timerController.napDurationSeconds.collectAsStateWithLifecycle()
+    val durationSeconds = if (state.isSnooze) originalDurationSeconds else state.durationSeconds
+    val captionBase = napCaption(durationSeconds)
     val caption = if (state.isSnooze) stringResource(R.string.countdown_caption_snoozed, captionBase) else captionBase
 
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
@@ -130,13 +129,13 @@ fun RunningScreen(state: TimerState.Running, timerController: TimerController) {
 }
 
 @Composable
-private fun napCaption(durationMinutes: Float): String {
-    val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+private fun napCaption(durationSeconds: Int): String {
+    val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
     return if (wholeMinutes != null) {
         pluralStringResource(R.plurals.nap_caption_minutes, wholeMinutes, wholeMinutes)
     } else {
-        val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
-        pluralStringResource(R.plurals.nap_caption_seconds, seconds, seconds)
+        val s = durationSeconds.coerceAtLeast(0)
+        pluralStringResource(R.plurals.nap_caption_seconds, s, s)
     }
 }
 
@@ -309,8 +308,8 @@ private fun RunningScreenPreview() {
     EasyNapTheme {
         val endAt = System.currentTimeMillis() + 15 * 60_000L
         RunningScreenStateless(
-            state = TimerState.Running(endAt, 15f, isSnooze = false),
-            originalDurationMinutes = 15f,
+            state = TimerState.Running(endAt, 900, isSnooze = false),
+            originalDurationSeconds = 900,
             onCancel = {}
         )
     }
@@ -322,8 +321,8 @@ private fun RunningScreenSnoozePreview() {
     EasyNapTheme {
         val endAt = System.currentTimeMillis() + 5 * 60_000L
         RunningScreenStateless(
-            state = TimerState.Running(endAt, 5f, isSnooze = true),
-            originalDurationMinutes = 30f,
+            state = TimerState.Running(endAt, 300, isSnooze = true),
+            originalDurationSeconds = 1800,
             onCancel = {}
         )
     }
@@ -335,8 +334,8 @@ private fun RunningScreenCompactLandscapePreview() {
     EasyNapTheme {
         val endAt = System.currentTimeMillis() + 5 * 60_000L
         RunningScreenStateless(
-            state = TimerState.Running(endAt, 5f, isSnooze = false),
-            originalDurationMinutes = 5f,
+            state = TimerState.Running(endAt, 300, isSnooze = false),
+            originalDurationSeconds = 300,
             onCancel = {},
             compactLandscape = true
         )
@@ -349,8 +348,8 @@ private fun RunningScreenFontScalePreview() {
     EasyNapTheme {
         val endAt = System.currentTimeMillis() + 15 * 60_000L
         RunningScreenStateless(
-            state = TimerState.Running(endAt, 15f, isSnooze = false),
-            originalDurationMinutes = 15f,
+            state = TimerState.Running(endAt, 900, isSnooze = false),
+            originalDurationSeconds = 900,
             onCancel = {}
         )
     }
@@ -362,8 +361,8 @@ private fun RunningScreenRtlPreview() {
     EasyNapTheme {
         val endAt = System.currentTimeMillis() + 15 * 60_000L
         RunningScreenStateless(
-            state = TimerState.Running(endAt, 15f, isSnooze = false),
-            originalDurationMinutes = 15f,
+            state = TimerState.Running(endAt, 900, isSnooze = false),
+            originalDurationSeconds = 900,
             onCancel = {}
         )
     }
@@ -372,16 +371,16 @@ private fun RunningScreenRtlPreview() {
 @Composable
 private fun RunningScreenStateless(
     state: TimerState.Running,
-    originalDurationMinutes: Float,
+    originalDurationSeconds: Int,
     onCancel: () -> Unit,
     compactLandscape: Boolean = false
 ) {
-    val totalMs = (state.durationMinutes * 60_000).toLong().coerceAtLeast(1L)
+    val totalMs = (state.durationSeconds * 1000L).coerceAtLeast(1L)
     val remainingMs = (state.endAtMillis - System.currentTimeMillis()).coerceAtLeast(0L)
     val fraction = (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
     val displayMs = remainingMs.coerceIn(0L, totalMs)
-    val durationMinutes = if (state.isSnooze) originalDurationMinutes else state.durationMinutes
-    val captionBase = napCaption(durationMinutes)
+    val durationSeconds = if (state.isSnooze) originalDurationSeconds else state.durationSeconds
+    val captionBase = napCaption(durationSeconds)
     val caption = if (state.isSnooze) stringResource(R.string.countdown_caption_snoozed, captionBase) else captionBase
 
     Scaffold { padding ->

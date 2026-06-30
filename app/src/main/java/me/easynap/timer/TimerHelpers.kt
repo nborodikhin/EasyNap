@@ -1,7 +1,5 @@
 package me.easynap.timer
 
-import kotlin.math.roundToInt
-
 fun parseDurationMinutes(input: String): Float? {
     val v = input.trim().toFloatOrNull() ?: return null
     return if (v > 0f) v else null
@@ -33,12 +31,8 @@ fun parseCustomDurationSeconds(input: String): Int? {
 
 fun isCustomDurationInRange(seconds: Int): Boolean = seconds in 5..7200
 
-fun durationTotalSeconds(minutes: Float): Int = (minutes * 60f).roundToInt()
-
-fun durationDisplayMinutesOrNull(minutes: Float): Int? {
-    val totalSeconds = durationTotalSeconds(minutes)
-    return if (totalSeconds >= 60) totalSeconds / 60 else null
-}
+fun durationDisplayMinutesOrNull(seconds: Int): Int? =
+    if (seconds >= 60) seconds / 60 else null
 
 // Appends a keypad key to the input buffer, enforcing max-length rules.
 fun appendToBuffer(buffer: String, key: String): String = when (key) {
@@ -75,12 +69,11 @@ fun formatRemainingTimeRoundUp(remainingMs: Long): String {
 fun anticipatedProgressMs(remainingMs: Long, syncIntervalMs: Long): Long =
     (remainingMs - minOf(syncIntervalMs, remainingMs)).coerceAtLeast(0)
 
-fun formatDurationLabel(minutes: Float): String =
-    if (minutes % 1f == 0f) {
-        "${minutes.toInt()}"
+fun formatDurationLabel(seconds: Int): String =
+    if (seconds % 60 == 0) {
+        "${seconds / 60}"
     } else {
-        val totalSeconds = (minutes * 60f).toInt()
-        "%d:%02d".format(java.util.Locale.ROOT, totalSeconds / 60, totalSeconds % 60)
+        "%d:%02d".format(java.util.Locale.ROOT, seconds / 60, seconds % 60)
     }
 
-val SNOOZE_OPTIONS: List<Float> = listOf(1f, 5f, 10f)
+val SNOOZE_OPTIONS: List<Int> = listOf(60, 300, 600)

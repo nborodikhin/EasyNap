@@ -49,7 +49,7 @@ class NapTimerServiceTest {
 
     @Test
     fun `service consults timer store on start when active timer exists`() {
-        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 10f)
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 600)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
         service.onStartCommand(null, 0, 1)
@@ -73,7 +73,7 @@ class NapTimerServiceTest {
 
     @Test
     fun `notification title shows whole-minute duration as N min nap is active`() {
-        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 20 * 60_000L, 20f)
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 20 * 60_000L, 1200)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
         service.onStartCommand(null, 0, 1)
@@ -88,7 +88,7 @@ class NapTimerServiceTest {
 
     @Test
     fun `notification title floors duration over one minute to whole minutes`() {
-        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 90_000L, 1.5f)
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 90_000L, 90)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
         service.onStartCommand(null, 0, 1)
@@ -103,7 +103,7 @@ class NapTimerServiceTest {
 
     @Test
     fun `notification title shows sub-minute duration as seconds`() {
-        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 30_000L, 0.5f)
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 30_000L, 30)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
         service.onStartCommand(null, 0, 1)
@@ -118,7 +118,7 @@ class NapTimerServiceTest {
 
     @Test
     fun `notification has a single Stop action`() {
-        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 10f)
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 600)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
         service.onStartCommand(null, 0, 1)
@@ -133,7 +133,7 @@ class NapTimerServiceTest {
 
     @Test
     fun `ACTION_STOP clears the active timer`() {
-        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 10f)
+        fakeStore.activeTimer = PersistedTimer(System.currentTimeMillis() + 10 * 60_000L, 600)
 
         val service = Robolectric.buildService(NapTimerService::class.java).create().get()
         service.onStartCommand(null, 0, 1)

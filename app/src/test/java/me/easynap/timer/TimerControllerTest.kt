@@ -36,14 +36,14 @@ class TimerControllerTest {
 
     @Test
     fun `start transitions state to Running`() = runTest {
-        controller.start(10f)
+        controller.start(600)
         advanceUntilIdle()
         assertTrue(controller.state.value is TimerState.Running)
     }
 
     @Test
     fun `cancel transitions state back to Idle`() = runTest {
-        controller.start(10f)
+        controller.start(600)
         advanceUntilIdle()
         controller.cancel()
         assertEquals(TimerState.Idle, controller.state.value)
@@ -51,7 +51,7 @@ class TimerControllerTest {
 
     @Test
     fun `startSnooze produces Running state with isSnooze true`() = runTest {
-        controller.startSnooze(5f)
+        controller.startSnooze(300)
         advanceUntilIdle()
         val state = controller.state.value
         assertTrue(state is TimerState.Running && state.isSnooze)
@@ -59,7 +59,7 @@ class TimerControllerTest {
 
     @Test
     fun `start does not set isSnooze`() = runTest {
-        controller.start(10f)
+        controller.start(600)
         advanceUntilIdle()
         val state = controller.state.value
         assertTrue(state is TimerState.Running && !state.isSnooze)
@@ -67,53 +67,51 @@ class TimerControllerTest {
 
     @Test
     fun `completeTimer transitions state to Idle`() = runTest {
-        controller.start(5f)
+        controller.start(300)
         advanceUntilIdle()
         controller.completeTimer()
         assertEquals(TimerState.Idle, controller.state.value)
     }
 
-    // Task 10.4: start() no longer updates history; addTimer does
     @Test
     fun `start does not update history`() = runTest {
-        val historBefore = fakeStore.history.first()
-        controller.start(99f)
+        val historyBefore = fakeStore.history.first()
+        controller.start(5940)
         advanceUntilIdle()
-        assertEquals(historBefore, fakeStore.history.first())
+        assertEquals(historyBefore, fakeStore.history.first())
     }
 
     @Test
     fun `addTimer updates history`() = runTest {
-        controller.addTimer(99f, 0)
+        controller.addTimer(5940, 0)
         advanceUntilIdle()
-        assertTrue(99f in fakeStore.history.first())
+        assertTrue(5940 in fakeStore.history.first())
     }
 
-    // Task 10.3: removeFromHistory + undo
     @Test
     fun `removeFromHistory removes duration and undo restores at original position`() = runTest {
-        fakeStore = FakeTimerStore(initialHistory = listOf(10f, 20f, 30f))
+        fakeStore = FakeTimerStore(initialHistory = listOf(600, 1200, 1800))
         val context = ApplicationProvider.getApplicationContext<Context>()
         controller = TimerController(fakeStore, context)
         advanceUntilIdle()
 
-        controller.removeFromHistory(20f)
+        controller.removeFromHistory(1200)
         advanceUntilIdle()
-        assertTrue(20f !in fakeStore.history.first())
+        assertTrue(1200 !in fakeStore.history.first())
 
         controller.undo()
         advanceUntilIdle()
-        assertEquals(20f, fakeStore.history.first()[1])
+        assertEquals(1200, fakeStore.history.first()[1])
     }
 
     @Test
     fun `second undo call is no-op`() = runTest {
-        fakeStore = FakeTimerStore(initialHistory = listOf(10f, 20f, 30f))
+        fakeStore = FakeTimerStore(initialHistory = listOf(600, 1200, 1800))
         val context = ApplicationProvider.getApplicationContext<Context>()
         controller = TimerController(fakeStore, context)
         advanceUntilIdle()
 
-        controller.removeFromHistory(20f)
+        controller.removeFromHistory(1200)
         advanceUntilIdle()
         controller.undo()
         advanceUntilIdle()

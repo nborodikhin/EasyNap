@@ -1,9 +1,5 @@
-# Countdown Timer
+## MODIFIED Requirements
 
-## Purpose
-
-Manages the active countdown from timer start through completion, including the foreground service, live notification, and reliable on-time firing even when the device is idle.
-## Requirements
 ### Requirement: Start a countdown
 When a timer is started, the system SHALL record a completion time at the requested number of seconds in the future and begin tracking the remaining time toward it. When the requested duration is 60 seconds or longer, the system SHALL add 5 seconds of padding to the completion time, so that a freshly started whole‑minute timer does not immediately tick down below the entered value. Durations shorter than 60 seconds SHALL NOT be padded.
 
@@ -68,44 +64,3 @@ The total duration used for progress calculation SHALL be derived from the integ
 #### Scenario: Progress handles final partial interval
 - **WHEN** less than one sync interval remains before timer completion
 - **THEN** the progress target is calculated using `minOf(syncInterval, remainingMs)` so the target reaches zero without overshooting negative progress
-
-### Requirement: Async persisted countdown state
-The countdown controller and foreground service SHALL load active timer state through DataStore-backed asynchronous access while preserving existing countdown behavior.
-
-#### Scenario: App restores active timer from DataStore
-- **WHEN** the app starts and a persisted future timer end time exists
-- **THEN** the app restores the running timer state from DataStore-backed persisted state
-
-#### Scenario: Foreground service avoids SharedPreferences disk reads
-- **WHEN** the countdown foreground service starts
-- **THEN** it loads the persisted timer end time without directly reading SharedPreferences synchronously
-
-### Requirement: Cancel a running timer
-The system SHALL allow the user to cancel an active timer, which stops the countdown and clears all associated system state.
-
-#### Scenario: Cancel from the running screen
-- **WHEN** the user taps "Cancel" on the running‑timer screen
-- **THEN** the countdown stops, the foreground service and its notification are removed, the scheduled completion is cancelled, and the app returns to the setup screen
-
-### Requirement: Reliable on‑time completion
-The system SHALL schedule the timer's completion so that it fires at the recorded completion time even when the device is idle (Doze), the screen is off, or the app is not running.
-
-#### Scenario: Fires while device is idle
-- **WHEN** the recorded completion time is reached while the device is in Doze or the screen is off
-- **THEN** the completion fires on time and triggers the nap alarm
-
-#### Scenario: Completion ends the countdown service
-- **WHEN** the timer completes
-- **THEN** the countdown foreground service stops maintaining the countdown notification and the nap alarm takes over
-
-### Requirement: Start countdown from snooze
-After an alarm fires, the system SHALL allow the alarm snooze action to start a new countdown for the selected snooze duration using the same single-active-timer rules and foreground countdown service behavior as a normal timer start.
-
-#### Scenario: Snooze starts foreground countdown
-- **WHEN** the user selects a snooze duration from the alarm screen
-- **THEN** the system starts a new countdown for that duration and maintains the foreground countdown service and ongoing notification
-
-#### Scenario: Snooze countdown remains single source of truth
-- **WHEN** a snooze countdown is started
-- **THEN** the completed alarm state is cleared and the snooze countdown becomes the single active timer
-

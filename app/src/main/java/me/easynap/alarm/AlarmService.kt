@@ -22,7 +22,6 @@ import me.easynap.R
 import me.easynap.notifications.EasyNapNotifications
 import me.easynap.service.NapTimerService
 import me.easynap.timer.TimerController
-import me.easynap.timer.durationTotalSeconds
 import me.easynap.timer.durationDisplayMinutesOrNull
 
 @AndroidEntryPoint
@@ -70,7 +69,7 @@ class AlarmService : Service() {
             }
             ACTION_SNOOZE -> {
                 stopAlarm()
-                timerController.startSnooze(1f)
+                timerController.startSnooze(60)
                 return START_NOT_STICKY
             }
         }
@@ -97,14 +96,14 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val durationMinutes = timerController.napDurationMinutes.value
-        val title = if (durationMinutes > 0f) {
-            val wholeMinutes = durationDisplayMinutesOrNull(durationMinutes)
+        val durationSeconds = timerController.napDurationSeconds.value
+        val title = if (durationSeconds > 0) {
+            val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
             val prefix = if (wholeMinutes != null) {
                 resources.getQuantityString(R.plurals.notif_duration_min, wholeMinutes, wholeMinutes)
             } else {
-                val seconds = durationTotalSeconds(durationMinutes).coerceAtLeast(0)
-                resources.getQuantityString(R.plurals.notif_duration_sec, seconds, seconds)
+                val s = durationSeconds.coerceAtLeast(0)
+                resources.getQuantityString(R.plurals.notif_duration_sec, s, s)
             }
             getString(R.string.notif_alarm_title, prefix)
         } else {

@@ -1,9 +1,5 @@
-# Timer Persistence
+## MODIFIED Requirements
 
-## Purpose
-
-Defines how Easy Nap persists active timer state and duration history without synchronous main-thread preference reads.
-## Requirements
 ### Requirement: DataStore-backed timer persistence
 The system SHALL persist active timer end time, selected nap duration, and recent duration history using Jetpack DataStore instead of direct SharedPreferences access. The selected nap duration SHALL be stored as an integer number of seconds using the key `nap_duration_seconds`. Recent duration history SHALL be stored as a comma-separated string of integer seconds using the key `duration_history_seconds`.
 
@@ -30,3 +26,8 @@ The system SHALL NOT perform synchronous SharedPreferences disk reads from UI-fa
 - **WHEN** the countdown foreground service starts
 - **THEN** it obtains the active timer end time through DataStore-backed asynchronous access rather than direct SharedPreferences reads
 
+## REMOVED Requirements
+
+### Requirement: SharedPreferences migration
+**Reason:** The duration keys being replaced (`nap_duration_minutes`, `duration_history`) used a float-minute representation incompatible with the new integer-second keys. Migrating them would require a format conversion that is error-prone and unnecessary given that no live users exist.
+**Migration:** Upgraded installs treat the absence of `nap_duration_seconds` and `duration_history_seconds` keys as a fresh install: the selected duration defaults to 0 and history defaults to the seed values (5 min, 10 min, 30 min). The `end_at_millis` SharedPreferences key remains unaffected; any existing active timer end time still reaches the DataStore via the existing SharedPreferences migration path.

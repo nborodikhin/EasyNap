@@ -4,16 +4,16 @@ import kotlinx.coroutines.flow.Flow
 
 data class PersistedTimer(
     val endAtMillis: Long,
-    val durationMinutes: Float
+    val durationSeconds: Int
 )
 
 interface TimerStore {
-    val history: Flow<List<Float>>
-    val napDurationMinutes: Flow<Float>
+    val history: Flow<List<Int>>
+    val napDurationSeconds: Flow<Int>
     suspend fun loadActiveTimer(nowMillis: Long = System.currentTimeMillis()): PersistedTimer?
-    suspend fun getNapDurationMinutes(): Float
-    suspend fun startTimer(endAtMillis: Long, durationMinutes: Float, updateNapDuration: Boolean = true)
+    suspend fun getNapDurationSeconds(): Int
+    suspend fun startTimer(endAtMillis: Long, durationSeconds: Int, updateNapDuration: Boolean = true)
     suspend fun clearActiveTimer()
-    suspend fun addToHistory(minutes: Float, position: Int)
-    suspend fun removeFromHistory(minutes: Float)
+    suspend fun addToHistory(seconds: Int, position: Int)
+    suspend fun removeFromHistory(seconds: Int)
 }

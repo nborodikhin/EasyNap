@@ -91,7 +91,7 @@ class EasyNapE2ETest {
 
     @Test
     fun runningScreen_tapCancel_returnsToSetupScreen() {
-        timerController.start(5f)
+        timerController.start(300)
         composeRule.waitForText("Cancel nap")
 
         composeRule.onNodeWithText("Cancel nap").performClick()
@@ -102,7 +102,7 @@ class EasyNapE2ETest {
     @Test
     fun runningScreen_snooze_startsNewTimerWithIsSnoozeTrue() {
         // Put the app in a running snooze state directly via controller
-        timerController.startSnooze(5f)
+        timerController.startSnooze(300)
         composeRule.waitForText("REMAINING")
 
         // Running screen appears with snoozed caption
@@ -115,7 +115,7 @@ class EasyNapE2ETest {
     @Test
     fun alarmState_stop_returnsToSetupScreen() {
         // Simulate alarm completion
-        timerController.start(5f)
+        timerController.start(300)
         composeRule.waitForText("REMAINING")
         timerController.completeTimer()
         composeRule.waitForIdle()

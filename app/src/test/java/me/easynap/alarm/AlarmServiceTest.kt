@@ -70,7 +70,7 @@ class AlarmServiceTest {
 
     @Test
     fun `notification title shows whole-minute duration as N min nap is over`() {
-        runBlocking { fakeStore.startTimer(System.currentTimeMillis() + 20 * 60_000L, 20f) }
+        runBlocking { fakeStore.startTimer(System.currentTimeMillis() + 20 * 60_000L, 1200) }
         shadowOf(Looper.getMainLooper()).idle()
 
         val controller = Robolectric.buildService(AlarmService::class.java, Intent()).create()
@@ -118,6 +118,6 @@ class AlarmServiceTest {
         assertFalse("Alarm should stop after Snooze action", AlarmService.isRunning)
         val timer = fakeStore.activeTimer
         assertNotNull("A snooze countdown should have started", timer)
-        assertEquals("Snooze countdown should be 1 minute", 1f, timer!!.durationMinutes)
+        assertEquals("Snooze countdown should be 1 minute", 60, timer!!.durationSeconds)
     }
 }
