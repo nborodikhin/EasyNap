@@ -272,7 +272,7 @@ internal fun DurationGrid(
     mode: DurationGridMode = DurationGridMode.Normal,
     onModeChange: (DurationGridMode) -> Unit = {}
 ) {
-    val rows = (durations.take(5).map<Int, Int?> { it } + listOf(null)).chunked(3)
+    val rows = remember(durations) { (durations.take(5).map { it as Int? } + null).chunked(3) }
     Column(
         verticalArrangement = Arrangement.spacedBy(9.dp),
         modifier = Modifier.clickable(
@@ -300,8 +300,7 @@ internal fun DurationGrid(
                                 .alpha(if (dimmed) 0.38f else 1f)
                         )
                     } else {
-                        val isPendingDelete = mode is DurationGridMode.PendingDelete &&
-                                (mode as DurationGridMode.PendingDelete).seconds == item
+                        val isPendingDelete = (mode as? DurationGridMode.PendingDelete)?.seconds == item
                         val isDimmed = mode is DurationGridMode.PendingDelete && !isPendingDelete
                         DurationTile(
                             seconds = item,
@@ -532,8 +531,8 @@ internal fun CustomDurationSheet(onDismiss: () -> Unit, onStart: (Int) -> Unit) 
     var inputBuffer by rememberSaveable { mutableStateOf("") }
 
     val parsedSeconds = parseCustomDurationSeconds(inputBuffer)
-    val isOutOfRange = parsedSeconds != null && !isCustomDurationInRange(parsedSeconds)
     val isStartEnabled = parsedSeconds != null && isCustomDurationInRange(parsedSeconds)
+    val isOutOfRange = !isStartEnabled && parsedSeconds != null
 
     val context = LocalContext.current
     val reduceMotion = remember {
@@ -1118,8 +1117,8 @@ private fun CustomDurationSheetStateless(
     compactLandscape: Boolean = false
 ) {
     val parsedSeconds = parseCustomDurationSeconds(inputBuffer)
-    val isOutOfRange = parsedSeconds != null && !isCustomDurationInRange(parsedSeconds)
     val isStartEnabled = parsedSeconds != null && isCustomDurationInRange(parsedSeconds)
+    val isOutOfRange = !isStartEnabled && parsedSeconds != null
     CustomDurationSheetContent(
         inputBuffer = inputBuffer,
         cursorAlpha = cursorAlpha,

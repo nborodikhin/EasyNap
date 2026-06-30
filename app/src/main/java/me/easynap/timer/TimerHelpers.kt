@@ -1,5 +1,18 @@
 package me.easynap.timer
 
+import android.content.res.Resources
+import me.easynap.R
+
+fun Resources.notifDurationPrefix(durationSeconds: Int): String {
+    val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
+    return if (wholeMinutes != null) {
+        getQuantityString(R.plurals.notif_duration_min, wholeMinutes, wholeMinutes)
+    } else {
+        val seconds = durationSeconds.coerceAtLeast(0)
+        getQuantityString(R.plurals.notif_duration_sec, seconds, seconds)
+    }
+}
+
 fun parseDurationMinutes(input: String): Float? {
     val v = input.trim().toFloatOrNull() ?: return null
     return if (v > 0f) v else null

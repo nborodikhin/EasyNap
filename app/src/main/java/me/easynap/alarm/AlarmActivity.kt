@@ -156,20 +156,17 @@ class AlarmActivity : ComponentActivity() {
     }
 
     private fun stopAlarmService() {
-        startService(Intent(this, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_STOP
-        })
-        startActivity(Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        })
-        finish()
+        startService(Intent(this, AlarmService::class.java).apply { action = AlarmService.ACTION_STOP })
+        returnToMain()
     }
 
     private fun snooze(seconds: Int) {
-        startService(Intent(this, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_STOP
-        })
+        startService(Intent(this, AlarmService::class.java).apply { action = AlarmService.ACTION_STOP })
         timerController.startSnooze(seconds)
+        returnToMain()
+    }
+
+    private fun returnToMain() {
         startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         })

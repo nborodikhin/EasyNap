@@ -31,6 +31,7 @@ class TimerController @Inject constructor(
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     private val _state = MutableStateFlow<TimerState>(TimerState.Idle)
     val state: StateFlow<TimerState> = _state.asStateFlow()
@@ -124,13 +125,11 @@ class TimerController @Inject constructor(
     }
 
     private fun scheduleAlarm(endAt: Long) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = alarmPendingIntent()
         alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(endAt, pi), pi)
     }
 
     private fun cancelAlarm() {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(alarmPendingIntent())
     }
 

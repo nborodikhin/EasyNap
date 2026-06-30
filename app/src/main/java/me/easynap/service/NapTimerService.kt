@@ -22,15 +22,14 @@ import me.easynap.R
 import me.easynap.data.TimerStore
 import me.easynap.notifications.EasyNapNotifications
 import me.easynap.timer.TimerController
-import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.formatRemainingTime
+import me.easynap.timer.notifDurationPrefix
 
 @AndroidEntryPoint
 class NapTimerService : Service() {
 
     companion object {
         const val CHANNEL_TIMER = EasyNapNotifications.CHANNEL_TIMER
-        const val CHANNEL_ALARM = EasyNapNotifications.CHANNEL_ALARM
         const val NOTIF_ID_TIMER = 1
         const val ACTION_STOP = "me.easynap.ACTION_STOP_TIMER"
 
@@ -45,6 +44,26 @@ class NapTimerService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var endAtMillis = 0L
     private var durationSeconds = 0
+
+    private val nm: NotificationManager by lazy {
+        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    }
+    private val openAppPendingIntent: PendingIntent by lazy {
+        PendingIntent.getActivity(
+            this, REQUEST_OPEN_APP,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+    private val stopTimerPendingIntent: PendingIntent by lazy {
+        PendingIntent.getForegroundService(
+            this, REQUEST_STOP,
+            Intent(this, NapTimerService::class.java).apply { action = ACTION_STOP },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
 
     private val tick = object : Runnable {
         override fun run() {
@@ -96,27 +115,8 @@ class NapTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun buildNotification(remainingMs: Long): Notification {
-        val openAppIntent = PendingIntent.getActivity(
-            this, REQUEST_OPEN_APP,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val stopIntent = PendingIntent.getForegroundService(
-            this, REQUEST_STOP,
-            Intent(this, NapTimerService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
         val title = if (durationSeconds > 0) {
-            val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
-            val prefix = if (wholeMinutes != null) {
-                resources.getQuantityString(R.plurals.notif_duration_min, wholeMinutes, wholeMinutes)
-            } else {
-                val s = durationSeconds.coerceAtLeast(0)
-                resources.getQuantityString(R.plurals.notif_duration_sec, s, s)
-            }
-            getString(R.string.notif_timer_title, prefix)
+            getString(R.string.notif_timer_title, resources.notifDurationPrefix(durationSeconds))
         } else {
             getString(R.string.notif_app_name)
         }
@@ -124,20 +124,19 @@ class NapTimerService : Service() {
             .setContentTitle(title)
             .setContentText(getString(R.string.notif_timer_remaining, formatRemainingTime(remainingMs)))
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentIntent(openAppIntent)
+            .setContentIntent(openAppPendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .addAction(
                 R.drawable.ic_alarm_off_24,
                 getString(R.string.notif_action_stop),
-                stopIntent
+                stopTimerPendingIntent
             )
             .build()
     }
 
     private fun updateNotification(remainingMs: Long) {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(NOTIF_ID_TIMER, buildNotification(remainingMs))
     }
 }

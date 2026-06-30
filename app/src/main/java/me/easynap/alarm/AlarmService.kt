@@ -23,6 +23,7 @@ import me.easynap.notifications.EasyNapNotifications
 import me.easynap.service.NapTimerService
 import me.easynap.timer.TimerController
 import me.easynap.timer.durationDisplayMinutesOrNull
+import me.easynap.timer.notifDurationPrefix
 
 @AndroidEntryPoint
 class AlarmService : Service() {
@@ -98,21 +99,14 @@ class AlarmService : Service() {
 
         val durationSeconds = timerController.napDurationSeconds.value
         val title = if (durationSeconds > 0) {
-            val wholeMinutes = durationDisplayMinutesOrNull(durationSeconds)
-            val prefix = if (wholeMinutes != null) {
-                resources.getQuantityString(R.plurals.notif_duration_min, wholeMinutes, wholeMinutes)
-            } else {
-                val s = durationSeconds.coerceAtLeast(0)
-                resources.getQuantityString(R.plurals.notif_duration_sec, s, s)
-            }
-            getString(R.string.notif_alarm_title, prefix)
+            getString(R.string.notif_alarm_title, resources.notifDurationPrefix(durationSeconds))
         } else {
             getString(R.string.notif_app_name)
         }
 
         startForeground(
             NOTIF_ID_ALARM,
-            NotificationCompat.Builder(this, NapTimerService.CHANNEL_ALARM)
+            NotificationCompat.Builder(this, EasyNapNotifications.CHANNEL_ALARM)
                 .setContentTitle(title)
                 .setContentText(getString(R.string.notif_alarm_text))
                 .setSmallIcon(R.drawable.ic_notification)
@@ -216,37 +210,28 @@ class AlarmService : Service() {
         }
 
         fadeStep = 0
-        scheduleFadeInStep()
+        scheduleFadeStep(FadeDirection.FadeIn)
     }
 
-    private fun scheduleFadeInStep() {
-        if (fadeStep >= fadeStepsTotal) {
-            mediaPlayer?.setVolume(1f, 1f)
-            return
-        }
-        handler.postDelayed({
-            val v = fadeStep.toFloat() / fadeStepsTotal
-            mediaPlayer?.setVolume(v, v)
-            fadeStep++
-            scheduleFadeInStep()
-        }, FADE_STEP_MS)
-    }
+    private enum class FadeDirection { FadeIn, FadeOut }
 
     private fun startAudioFadeOut() {
         fadeStep = fadeStepsTotal
-        scheduleFadeOutStep()
+        scheduleFadeStep(FadeDirection.FadeOut)
     }
 
-    private fun scheduleFadeOutStep() {
-        if (fadeStep <= 0) {
-            mediaPlayer?.setVolume(0f, 0f)
+    private fun scheduleFadeStep(direction: FadeDirection) {
+        val done = if (direction == FadeDirection.FadeIn) fadeStep >= fadeStepsTotal else fadeStep <= 0
+        if (done) {
+            val finalVol = if (direction == FadeDirection.FadeIn) 1f else 0f
+            mediaPlayer?.setVolume(finalVol, finalVol)
             return
         }
         handler.postDelayed({
             val v = fadeStep.toFloat() / fadeStepsTotal
             mediaPlayer?.setVolume(v, v)
-            fadeStep--
-            scheduleFadeOutStep()
+            fadeStep += if (direction == FadeDirection.FadeIn) 1 else -1
+            scheduleFadeStep(direction)
         }, FADE_STEP_MS)
     }
 }
