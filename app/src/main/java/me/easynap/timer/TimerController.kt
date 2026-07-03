@@ -25,8 +25,7 @@ class TimerController @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val PAD_MS_SHORT = 990L
-        private const val PAD_MS_LONG = 1_990L
+        private const val START_DELAY = 990L
         private const val UNDO_WINDOW_MS = 5_000L
     }
 
@@ -94,8 +93,7 @@ class TimerController @Inject constructor(
 
     private fun startInternal(durationSeconds: Int, isSnooze: Boolean) {
         val durationMs = durationSeconds * 1000L
-        val pad = if (durationSeconds >= 60) PAD_MS_LONG else PAD_MS_SHORT
-        val endAt = System.currentTimeMillis() + durationMs + pad
+        val endAt = System.currentTimeMillis() + durationMs + START_DELAY
         scope.launch {
             store.startTimer(endAt, durationSeconds, updateNapDuration = !isSnooze)
             _state.value = TimerState.Running(endAt, durationSeconds, isSnooze = isSnooze)

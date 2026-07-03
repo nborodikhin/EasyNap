@@ -42,27 +42,51 @@ fun parseCustomDurationSeconds(input: String): Int? {
     }
 }
 
-fun isCustomDurationInRange(seconds: Int): Boolean = seconds in 5..7200
+const val MAX_CUSTOM_DURATION_MINUTES = 120
+
+fun isCustomDurationInRange(seconds: Int): Boolean = seconds in 5..(MAX_CUSTOM_DURATION_MINUTES * 60)
 
 fun durationDisplayMinutesOrNull(seconds: Int): Int? =
     if (seconds >= 60) seconds / 60 else null
 
-// Appends a keypad key to the input buffer, enforcing max-length rules.
-fun appendToBuffer(buffer: String, key: String): String = when (key) {
-    "⌫" -> if (buffer.isNotEmpty()) buffer.dropLast(1) else buffer
-    ":" -> if (canAppendColon(buffer)) buffer + ":" else buffer
-    else -> {
-        if (':' in buffer) {
-            if (buffer.substringAfter(':').length >= 2) buffer else buffer + key
-        } else {
-            if (buffer.length >= 3) buffer else buffer + key
-        }
-    }
+// The 7 states a custom-duration buffer can be in; drives which keys are legal next.
+enum class KeypadState {
+    EMPTY, SUBMINUTE_START, SUBMINUTE_TENS, SUBMINUTE_FULL, MINUTE_ONES, MINUTE_TENS, MINUTE_HUNDREDS
 }
 
-fun canAppendColon(buffer: String): Boolean {
-    if (buffer.isEmpty() || ':' in buffer) return false
-    return buffer.toIntOrNull() == 0
+fun keypadState(buffer: String): KeypadState = when {
+    buffer.isEmpty() -> KeypadState.EMPTY
+    buffer == "0" -> KeypadState.SUBMINUTE_START
+    ':' in buffer -> if (buffer.substringAfter(':').length >= 2) {
+        KeypadState.SUBMINUTE_FULL
+    } else {
+        KeypadState.SUBMINUTE_TENS
+    }
+    buffer.length == 1 -> KeypadState.MINUTE_ONES
+    buffer.length == 2 -> KeypadState.MINUTE_TENS
+    else -> KeypadState.MINUTE_HUNDREDS
+}
+
+// Whether pressing `digit` is legal for a buffer classified as `state`.
+fun isDigitAllowed(state: KeypadState, buffer: String, digit: Int): Boolean = when (state) {
+    KeypadState.EMPTY, KeypadState.MINUTE_ONES -> true
+    KeypadState.SUBMINUTE_START -> digit in 0..5
+    KeypadState.SUBMINUTE_TENS -> {
+        val tensIsZero = buffer.last() == '0'
+        digit in (if (tensIsZero) 5 else 0)..9
+    }
+    KeypadState.MINUTE_TENS -> buffer.toInt() * 10 + digit <= MAX_CUSTOM_DURATION_MINUTES
+    KeypadState.SUBMINUTE_FULL, KeypadState.MINUTE_HUNDREDS -> false
+}
+
+// Appends a keypad key to the input buffer, rejecting digits invalid for the current state.
+// Colon is auto-inserted when leaving SUBMINUTE_START rather than typed directly.
+fun appendToBuffer(buffer: String, key: String): String {
+    if (key == "⌫") return if (buffer.isNotEmpty()) buffer.dropLast(1) else buffer
+    val digit = key.toIntOrNull() ?: return buffer
+    val state = keypadState(buffer)
+    if (!isDigitAllowed(state, buffer, digit)) return buffer
+    return if (state == KeypadState.SUBMINUTE_START) "$buffer:$digit" else buffer + digit
 }
 
 fun formatRemainingTime(remainingMs: Long): String {

@@ -2,8 +2,10 @@ package me.easynap
 
 import me.easynap.timer.SNOOZE_OPTIONS
 import me.easynap.timer.anticipatedProgressMs
+import me.easynap.timer.KeypadState
 import me.easynap.timer.appendToBuffer
 import me.easynap.timer.durationDisplayMinutesOrNull
+import me.easynap.timer.keypadState
 import me.easynap.timer.formatRemainingTime
 import me.easynap.timer.formatRemainingTimeRoundUp
 import me.easynap.timer.isCustomDurationInRange
@@ -270,19 +272,44 @@ class TimerHelpersTest {
     }
 
     @Test
-    fun `appendToBuffer inserts colon after zero minute field`() {
-        assertEquals("0:", appendToBuffer("0", ":"))
-        assertEquals("00:", appendToBuffer("00", ":"))
+    fun `appendToBuffer auto-inserts colon entering sub-minute mode`() {
+        assertEquals("0:2", appendToBuffer("0", "2"))
     }
 
     @Test
-    fun `appendToBuffer rejects colon after non-zero minute field`() {
-        assertEquals("12", appendToBuffer("12", ":"))
+    fun `appendToBuffer rejects sub-minute tens digit above 5`() {
+        assertEquals("0", appendToBuffer("0", "6"))
     }
 
     @Test
-    fun `appendToBuffer rejects colon when already present`() {
-        assertEquals("0:3", appendToBuffer("0:3", ":"))
+    fun `appendToBuffer rejects sub-minute units digit below 5 when tens is zero`() {
+        assertEquals("0:0", appendToBuffer("0:0", "3"))
+    }
+
+    @Test
+    fun `appendToBuffer allows any sub-minute units digit when tens is nonzero`() {
+        assertEquals("0:10", appendToBuffer("0:1", "0"))
+    }
+
+    @Test
+    fun `appendToBuffer rejects minute digit that would exceed 120`() {
+        assertEquals("13", appendToBuffer("13", "0"))
+    }
+
+    @Test
+    fun `appendToBuffer allows minute digit that keeps value at or under 120`() {
+        assertEquals("120", appendToBuffer("12", "0"))
+    }
+
+    @Test
+    fun `keypadState classifies each of the 7 states`() {
+        assertEquals(KeypadState.EMPTY, keypadState(""))
+        assertEquals(KeypadState.SUBMINUTE_START, keypadState("0"))
+        assertEquals(KeypadState.SUBMINUTE_TENS, keypadState("0:3"))
+        assertEquals(KeypadState.SUBMINUTE_FULL, keypadState("0:35"))
+        assertEquals(KeypadState.MINUTE_ONES, keypadState("5"))
+        assertEquals(KeypadState.MINUTE_TENS, keypadState("25"))
+        assertEquals(KeypadState.MINUTE_HUNDREDS, keypadState("105"))
     }
 
     @Test

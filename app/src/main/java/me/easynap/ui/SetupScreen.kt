@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -101,9 +102,10 @@ import me.easynap.R
 import me.easynap.theme.EasyNapTheme
 import me.easynap.timer.TimerController
 import me.easynap.timer.appendToBuffer
-import me.easynap.timer.canAppendColon
 import me.easynap.timer.durationDisplayMinutesOrNull
 import me.easynap.timer.isCustomDurationInRange
+import me.easynap.timer.isDigitAllowed
+import me.easynap.timer.keypadState
 import me.easynap.timer.parseCustomDurationSeconds
 import me.easynap.data.TimerPreferenceStore
 
@@ -519,7 +521,6 @@ private fun mapCustomDurationKey(key: Key): String? = when (key) {
     Key.Seven, Key.NumPad7 -> "7"
     Key.Eight, Key.NumPad8 -> "8"
     Key.Nine, Key.NumPad9 -> "9"
-    Key.Semicolon, Key.Period, Key.NumPadDot -> ":"
     Key.Backspace, Key.Delete -> "⌫"
     else -> null
 }
@@ -668,43 +669,61 @@ internal fun ValueDisplay(
 @Composable
 internal fun NumericKeypad(
     onKey: (String) -> Unit,
-    colonEnabled: Boolean,
+    buffer: String,
     modifier: Modifier = Modifier,
     keyHeight: Dp = 56.dp,
     spacing: Dp = 8.dp,
     keyFontSize: TextUnit = 23.sp
 ) {
-    val rows = listOf(
+    val digitRows = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf(":", "0", "⌫")
+        listOf("7", "8", "9")
     )
+    val state = keypadState(buffer)
+    val backspaceDesc = stringResource(R.string.keypad_backspace_desc)
+
+    @Composable
+    fun RowScope.digitKey(digit: String) {
+        KeypadButton(
+            label = digit,
+            onClick = { onKey(digit) },
+            enabled = isDigitAllowed(state, buffer, digit.toInt()),
+            isSpecial = false,
+            height = keyHeight,
+            fontSize = keyFontSize,
+            modifier = Modifier.weight(1f)
+        )
+    }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(spacing)
     ) {
-        rows.forEach { row ->
+        digitRows.forEach { row ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(spacing),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                row.forEach { key ->
-                    val isSpecial = key == ":" || key == "⌫"
-                    val enabled = if (key == ":") colonEnabled else true
-                    val keyContentDesc = if (key == "⌫") stringResource(R.string.keypad_backspace_desc) else null
-                    KeypadButton(
-                        label = key,
-                        onClick = { onKey(key) },
-                        enabled = enabled,
-                        isSpecial = isSpecial,
-                        contentDescription = keyContentDesc,
-                        height = keyHeight,
-                        fontSize = keyFontSize,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                row.forEach { digit -> digitKey(digit) }
             }
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+            digitKey("0")
+            KeypadButton(
+                label = "⌫",
+                onClick = { onKey("⌫") },
+                enabled = buffer.isNotEmpty(),
+                isSpecial = true,
+                contentDescription = backspaceDesc,
+                height = keyHeight,
+                fontSize = keyFontSize,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -836,7 +855,7 @@ private fun CustomDurationSheetContent(
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 NumericKeypad(
                     onKey = onKey,
-                    colonEnabled = canAppendColon(inputBuffer),
+                    buffer = inputBuffer,
                     modifier = Modifier.weight(1.25f),
                     keyHeight = 48.dp,
                     keyFontSize = 21.sp
@@ -878,7 +897,7 @@ private fun CustomDurationSheetContent(
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 NumericKeypad(
                     onKey = onKey,
-                    colonEnabled = canAppendColon(inputBuffer)
+                    buffer = inputBuffer
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -1048,16 +1067,16 @@ private fun ValueDisplayFilledPreview() {
     EasyNapTheme { ValueDisplay(inputBuffer = "0:30", cursorAlpha = 0f) }
 }
 
-@Preview(showBackground = true, name = "NumericKeypad - colon enabled")
+@Preview(showBackground = true, name = "NumericKeypad - empty buffer")
 @Composable
-private fun NumericKeypadColonEnabledPreview() {
-    EasyNapTheme { NumericKeypad(onKey = {}, colonEnabled = true) }
+private fun NumericKeypadEmptyBufferPreview() {
+    EasyNapTheme { NumericKeypad(onKey = {}, buffer = "") }
 }
 
-@Preview(showBackground = true, name = "NumericKeypad - colon disabled")
+@Preview(showBackground = true, name = "NumericKeypad - constrained buffer")
 @Composable
-private fun NumericKeypadColonDisabledPreview() {
-    EasyNapTheme { NumericKeypad(onKey = {}, colonEnabled = false) }
+private fun NumericKeypadConstrainedBufferPreview() {
+    EasyNapTheme { NumericKeypad(onKey = {}, buffer = "13") }
 }
 
 @Preview(showBackground = true, name = "KeypadButton - normal")
