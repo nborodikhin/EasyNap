@@ -12,8 +12,8 @@ android {
         applicationId = "me.easynap"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1003
-        versionName = "1.3"
+        versionCode = 1004
+        versionName = "1.4"
         testInstrumentationRunner = "me.easynap.HiltTestRunner"
     }
 
