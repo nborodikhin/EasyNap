@@ -373,7 +373,9 @@ internal fun DurationTile(
     Box(modifier = modifier) {
         Card(
             modifier = Modifier
+                .widthIn(max = 320.dp)
                 .fillMaxWidth()
+                .align(Alignment.Center)
                 .heightIn(min = 72.dp)
                 .then(
                     if (isPendingDelete) Modifier.border(2.dp, errorBorderColor, MaterialTheme.shapes.extraLarge)
@@ -468,44 +470,49 @@ internal fun DurationTile(
 @Composable
 internal fun CustomTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val customDesc = stringResource(R.string.tile_custom_desc)
-    Card(
-        onClick = onClick,
-        modifier = modifier
-            .heightIn(min = 72.dp)
-            .clearAndSetSemantics {
-                contentDescription = customDesc
-                role = Role.Button
-                onClick(label = customDesc) {
-                    onClick()
-                    true
-                }
-            }
-            .testTag("custom-tile"),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
+    Box(modifier = modifier) {
+        Card(
+            onClick = onClick,
             modifier = Modifier
+                .heightIn(min = 72.dp)
+                .widthIn(max = 320.dp)
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .align(Alignment.Center)
+                .clearAndSetSemantics {
+                    contentDescription = customDesc
+                    role = Role.Button
+                    onClick(label = customDesc) {
+                        onClick()
+                        true
+                    }
+                }
+                .testTag("custom-tile"),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
         ) {
-            Text(
-                text = "+",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.clearAndSetSemantics {}
-            )
-            Text(
-                text = stringResource(R.string.tile_custom),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.clearAndSetSemantics {}
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp, horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "+",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.clearAndSetSemantics {}
+                )
+                Text(
+                    text = stringResource(R.string.tile_custom),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.clearAndSetSemantics {}
+                )
+            }
         }
     }
 }
@@ -922,6 +929,7 @@ private fun StartDurationButton(
         onClick = { if (parsedSeconds != null) onStart(parsedSeconds) },
         enabled = enabled,
         modifier = Modifier
+            .widthIn(max = 320.dp)
             .fillMaxWidth()
             .heightIn(min = 56.dp),
         shape = CircleShape
@@ -1138,17 +1146,23 @@ private fun CustomDurationSheetStateless(
     val parsedSeconds = parseCustomDurationSeconds(inputBuffer)
     val isStartEnabled = parsedSeconds != null && isCustomDurationInRange(parsedSeconds)
     val isOutOfRange = !isStartEnabled && parsedSeconds != null
-    CustomDurationSheetContent(
-        inputBuffer = inputBuffer,
-        cursorAlpha = cursorAlpha,
-        parsedSeconds = parsedSeconds,
-        isOutOfRange = isOutOfRange,
-        isStartEnabled = isStartEnabled,
-        title = "Set duration",
-        errorText = "Duration out of range",
-        startText = "Start nap",
-        compactLandscape = compactLandscape,
-        onKey = onKey,
-        onStart = onStart
-    )
+    Box(
+        modifier = Modifier
+            .background(color = MaterialTheme.colorScheme.background)
+            .background(color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f))
+    ) {
+        CustomDurationSheetContent(
+            inputBuffer = inputBuffer,
+            cursorAlpha = cursorAlpha,
+            parsedSeconds = parsedSeconds,
+            isOutOfRange = isOutOfRange,
+            isStartEnabled = isStartEnabled,
+            title = "Set duration",
+            errorText = "Duration out of range",
+            startText = "Start nap",
+            compactLandscape = compactLandscape,
+            onKey = onKey,
+            onStart = onStart
+        )
+    }
 }
