@@ -21,11 +21,15 @@ The app SHALL use the handoff typography direction with Roboto-compatible text s
 - **THEN** the displayed numerals use tabular figure styling
 
 ### Requirement: Shapes, spacing, and touch targets
-The app SHALL apply the handoff shape and spacing direction: 18-24dp horizontal screen padding, rounded cards and buttons, fully rounded primary actions, and interactive targets of at least 48dp.
+The app SHALL apply the handoff shape and spacing direction: 18-24dp horizontal screen padding, rounded cards and buttons, fully rounded primary actions, and interactive targets of at least 48dp. Controls that are buttons or visually/functionally serve as buttons SHALL NOT exceed 320dp in width.
 
 #### Scenario: Controls meet touch target minimums
 - **WHEN** the user views tappable duration, countdown, or alarm controls
 - **THEN** each tappable control is at least 48dp in its smaller dimension
+
+#### Scenario: Button-like controls stay within maximum width
+- **WHEN** a button or button-like control is displayed on any app screen
+- **THEN** its width does not exceed 320dp
 
 ### Requirement: Edge-to-edge dark surfaces
 The app SHALL present its screens edge-to-edge with transparent system bars and dark surfaces that remain legible behind system insets.

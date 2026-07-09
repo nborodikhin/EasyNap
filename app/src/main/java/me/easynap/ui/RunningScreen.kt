@@ -290,6 +290,7 @@ private fun CancelNapButton(
     OutlinedButton(
         onClick = onCancel,
         modifier = modifier
+            .widthIn(max = 320.dp)
             .fillMaxWidth()
             .heightIn(min = 60.dp),
         shape = CircleShape,
