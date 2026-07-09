@@ -22,6 +22,9 @@
     <string name="alarm_headline">Time to wake up</string>
     <string name="alarm_stop">Stop</string>
     <string name="alarm_snooze_label">SNOOZE</string>
+    <string name="alarm_snooze_shortcut_volume_down">Vol-</string>
+    <string name="alarm_snooze_shortcut_volume_up">Vol+</string>
+    <string name="snooze_button_desc_with_shortcut">%1$s, %2$s</string>
     <!-- Duration display -->
     <string name="duration_unit_min">min</string>
     <string name="duration_unit_sec">sec</string>

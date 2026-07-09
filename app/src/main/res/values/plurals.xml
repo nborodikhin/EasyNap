@@ -32,6 +32,10 @@
         <item quantity="one">Snooze %d minute</item>
         <item quantity="other">Snooze %d minutes</item>
     </plurals>
+    <plurals name="snooze_button_desc_seconds">
+        <item quantity="one">Snooze %d second</item>
+        <item quantity="other">Snooze %d seconds</item>
+    </plurals>
     <plurals name="notif_duration_min">
         <item quantity="one">%d min</item>
         <item quantity="other">%d min</item>

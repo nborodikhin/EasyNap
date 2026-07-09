@@ -144,10 +144,12 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = when (keyCode) {
-        KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> { snooze(60); true }
-        KeyEvent.KEYCODE_ESCAPE -> { stopAlarmService(); true }
-        else -> super.onKeyDown(keyCode, event)
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = when (val seconds = snoozeDurationForVolumeKey(keyCode)) {
+        null -> when (keyCode) {
+            KeyEvent.KEYCODE_ESCAPE -> { stopAlarmService(); true }
+            else -> super.onKeyDown(keyCode, event)
+        }
+        else -> { snooze(seconds); true }
     }
 
     override fun onDestroy() {
@@ -173,6 +175,27 @@ class AlarmActivity : ComponentActivity() {
         finish()
     }
 }
+
+internal fun snoozeDurationForVolumeKey(keyCode: Int): Int? = when (keyCode) {
+    KeyEvent.KEYCODE_VOLUME_DOWN -> SNOOZE_OPTIONS[0]
+    KeyEvent.KEYCODE_VOLUME_UP -> SNOOZE_OPTIONS[1]
+    else -> null
+}
+
+@Composable
+private fun snoozeShortcutLabel(index: Int): String? = when (index) {
+    0 -> stringResource(R.string.alarm_snooze_shortcut_volume_down)
+    1 -> stringResource(R.string.alarm_snooze_shortcut_volume_up)
+    else -> null
+}
+
+@Composable
+private fun snoozeButtonDescription(durationDescription: String, shortcutLabel: String?): String =
+    if (shortcutLabel == null) {
+        durationDescription
+    } else {
+        stringResource(R.string.snooze_button_desc_with_shortcut, durationDescription, shortcutLabel)
+    }
 
 @Composable
 private fun AlarmContent(
@@ -203,7 +226,7 @@ private fun AlarmContent(
                 stopText = stopText,
                 snoozeLabel = snoozeLabel,
                 stopHeight = 58.dp,
-                snoozeHeight = 52.dp,
+                snoozeHeight = 72.dp,
                 onStop = onStop,
                 onSnooze = onSnooze,
                 modifier = Modifier
@@ -223,7 +246,7 @@ private fun AlarmContent(
                 stopText = stopText,
                 snoozeLabel = snoozeLabel,
                 stopHeight = 68.dp,
-                snoozeHeight = 68.dp,
+                snoozeHeight = 72.dp,
                 onStop = onStop,
                 onSnooze = onSnooze
             )
@@ -287,7 +310,7 @@ private fun AlarmCheckIcon(size: Dp) {
 }
 
 @Composable
-private fun AlarmActions(
+internal fun AlarmActions(
     stopText: String,
     snoozeLabel: String,
     stopHeight: Dp,
@@ -303,6 +326,7 @@ private fun AlarmActions(
         Button(
             onClick = onStop,
             modifier = Modifier
+                .widthIn(max = 320.dp)
                 .fillMaxWidth()
                 .heightIn(min = stopHeight),
             shape = CircleShape
@@ -324,29 +348,66 @@ private fun AlarmActions(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SNOOZE_OPTIONS.forEach { seconds ->
-                val n = seconds / 60
-                val label = pluralStringResource(R.plurals.snooze_option_minutes, n, n)
-                val buttonDesc = pluralStringResource(R.plurals.snooze_button_desc_minutes, n, n)
-                FilledTonalButton(
-                    onClick = { onSnooze(seconds) },
+            SNOOZE_OPTIONS.forEachIndexed { index, seconds ->
+                val wholeMinutes = durationDisplayMinutesOrNull(seconds)
+                val value = wholeMinutes?.toString() ?: seconds.toString()
+                val unit = if (wholeMinutes != null) {
+                    stringResource(R.string.duration_unit_min)
+                } else {
+                    stringResource(R.string.duration_unit_sec)
+                }
+                val durationDesc = if (wholeMinutes != null) {
+                    pluralStringResource(R.plurals.snooze_button_desc_minutes, wholeMinutes, wholeMinutes)
+                } else {
+                    pluralStringResource(R.plurals.snooze_button_desc_seconds, seconds, seconds)
+                }
+                val shortcutLabel = snoozeShortcutLabel(index)
+                val buttonDesc = snoozeButtonDescription(durationDesc, shortcutLabel)
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = snoozeHeight)
-                        .semantics { contentDescription = buttonDesc },
-                    shape = RoundedCornerShape(18.dp),
+                        .weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelLarge.copy(textDirection = TextDirection.Ltr)
-                    )
+                    FilledTonalButton(
+                        onClick = { onSnooze(seconds) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = snoozeHeight)
+                            .semantics { contentDescription = buttonDesc },
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                value,
+                                style = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontFeatureSettings = "tnum",
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                unit,
+                                style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.Ltr),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    if (shortcutLabel != null) {
+                        Spacer(Modifier.heightIn(min = 8.dp))
+                        Text(
+                            shortcutLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.Ltr),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@Preview(showBackground = true, name = "Alarm - compact landscape", widthDp = 960, heightDp = 430)
+@Preview(showBackground = true, name = "Alarm - compact landscape", device = "spec:width=960dp,height=430dp,orientation=landscape")
 @Composable
 private fun AlarmCompactLandscapePreview() {
     EasyNapTheme {
