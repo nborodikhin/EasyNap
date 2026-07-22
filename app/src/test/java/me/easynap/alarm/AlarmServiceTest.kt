@@ -28,7 +28,7 @@ import org.robolectric.annotation.Config
 
 @HiltAndroidTest
 @UninstallModules(AppModule::class)
-@Config(application = HiltTestApplication::class, packageName = "me.easynap")
+@Config(application = HiltTestApplication::class)
 @RunWith(RobolectricTestRunner::class)
 class AlarmServiceTest {
 

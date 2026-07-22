@@ -7,11 +7,11 @@ plugins {
 
 android {
     namespace = "me.easynap"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "me.easynap"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1004
         versionName = "1.4"
         testInstrumentationRunner = "me.easynap.HiltTestRunner"
@@ -76,12 +76,6 @@ dependencies {
   implementation(libs.hilt.android)
   ksp(libs.hilt.android.compiler)
 
-  // Instrumented tests
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-  debugImplementation(libs.androidx.compose.ui.test.manifest)
-  androidTestImplementation(libs.hilt.android.testing)
-  kspAndroidTest(libs.hilt.android.compiler)
-
   // Local tests
   testImplementation(libs.junit)
   testImplementation(libs.androidx.datastore.preferences.core)
@@ -99,4 +93,8 @@ dependencies {
   androidTestImplementation(libs.androidx.test.ext.junit)
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+  androidTestImplementation(libs.hilt.android.testing)
+  kspAndroidTest(libs.hilt.android.compiler)
+  debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
