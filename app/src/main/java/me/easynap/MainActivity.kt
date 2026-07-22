@@ -28,6 +28,8 @@ import me.easynap.timer.TimerController
 import me.easynap.timer.TimerState
 import me.easynap.ui.RunningScreen
 import me.easynap.ui.SetupScreen
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -86,14 +88,14 @@ class MainActivity : ComponentActivity() {
             var innerJob: Job? = null
             timerController.state.collect { state ->
                 innerJob?.cancel()
-                if (state is TimerState.Running) {
-                    innerJob = launch {
+                innerJob = if (state is TimerState.Running) {
+                    launch {
                         val delayMs = state.endAtMillis - System.currentTimeMillis()
-                        if (delayMs > 0) delay(delayMs)
+                        if (delayMs > 0) delay( delayMs.milliseconds)
                         startAlarmActivity()
                     }
                 } else {
-                    innerJob = null
+                    null
                 }
             }
         }

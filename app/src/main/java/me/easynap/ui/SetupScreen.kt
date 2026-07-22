@@ -586,10 +586,10 @@ internal fun CustomDurationSheetBody(
     isOutOfRange: Boolean,
     isStartEnabled: Boolean,
     cursorAlpha: Float,
-    onBufferChange: (String) -> Unit,
-    onStart: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    onBufferChange: (String) -> Unit = {},
+    onStart: (Int) -> Unit = {},
     onDismiss: () -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
     BoxWithConstraints(
