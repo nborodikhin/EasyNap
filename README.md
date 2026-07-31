@@ -5,8 +5,8 @@
 EasyNap is a single-purpose nap timer. Pick a duration, start it, and get woken by a gentle alarm — even if your phone locks, the screen turns off, or you leave the app.
 
 <p align="center">
-  <a href="https://play.google.com/apps/testing/me.easynap"><img src="playstore/ic_launcher-playstore.png" width="80" alt="EasyNap icon" /></a>&nbsp;
-  <a href="https://play.google.com/apps/testing/me.easynap"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="200" alt="Get it on Google Play" /></a>
+  <a href="https://play.google.com/store/apps/details?id=me.easynap"><img src="playstore/ic_launcher-playstore.png" width="80" alt="EasyNap icon" /></a>&nbsp;
+  <a href="https://play.google.com/store/apps/details?id=me.easynap"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="200" alt="Get it on Google Play" /></a>
 </p>
 
 | Main screen | Conuntdown | Alarm | Snoozing |
